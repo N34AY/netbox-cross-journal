@@ -1,0 +1,3 @@
+recursive-include netbox_cross_journal/templates *.html
+recursive-include netbox_cross_journal/static *
+recursive-include netbox_cross_journal/locale *

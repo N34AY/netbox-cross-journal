@@ -1,0 +1,21 @@
+{% load i18n %}
+<div class="card">
+  <h5 class="card-header">
+    <i class="mdi mdi-file-table-outline"></i> {% trans "Cross Journal" %}
+  </h5>
+  <div class="card-body d-flex flex-column gap-2">
+    <a
+      href="{% url 'plugins:netbox_cross_journal:report' object_type_id object.pk %}"
+      class="btn btn-sm btn-primary"
+      target="_blank"
+    >
+      <i class="mdi mdi-file-eye-outline"></i> {% trans "Preview" %}
+    </a>
+    <a
+      href="{% url 'plugins:netbox_cross_journal:report_export_xlsx' object_type_id object.pk %}"
+      class="btn btn-sm btn-outline-primary"
+    >
+      <i class="mdi mdi-file-excel-outline"></i> {% trans "Download Excel" %}
+    </a>
+  </div>
+</div>

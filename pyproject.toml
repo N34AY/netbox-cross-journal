@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netbox-cross-journal"
+version = "0.1.0"
+description = "Generates a printable/Excel cross-connect journal (devices, data cabling, power cabling) scoped to a Rack, Location, or Site."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Akademik NIS" }]
+dependencies = [
+    "openpyxl>=3.1",
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["netbox_cross_journal*"]

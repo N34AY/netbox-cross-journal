@@ -1,0 +1,116 @@
+services:
+  postgres:
+    image: docker.io/postgres:18-alpine
+    env_file: env/postgres.env
+    volumes:
+      # postgres:18+ images require the volume at /var/lib/postgresql (not .../data) —
+      # they now manage a major-version-specific subdirectory themselves.
+      - netbox-postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: docker.io/valkey/valkey:9.0-alpine
+    env_file: env/redis.env
+    command:
+      - sh
+      - -c
+      - valkey-server --appendonly yes --requirepass $$REDIS_PASSWORD
+    volumes:
+      - netbox-redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "[ $$(valkey-cli --pass \"$${REDIS_PASSWORD}\" ping) = 'PONG' ]"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis-cache:
+    image: docker.io/valkey/valkey:9.0-alpine
+    env_file: env/redis-cache.env
+    command:
+      - sh
+      - -c
+      - valkey-server --requirepass $$REDIS_PASSWORD
+    volumes:
+      - netbox-redis-cache-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "[ $$(valkey-cli --pass \"$${REDIS_PASSWORD}\" ping) = 'PONG' ]"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  netbox:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NETBOX_VERSION: ${NETBOX_VERSION:-v4.6.8-5.0.2}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+    env_file: env/netbox.env
+    ports:
+      - "8001:8080"
+    user: "netbox:root"
+    volumes:
+      - ./configuration:/etc/netbox/config:ro
+      - ./:/opt/netbox-plugin-src:rw
+      - ./netbox_cross_journal/static/netbox_cross_journal:/opt/netbox/netbox/static/netbox_cross_journal:ro
+      - netbox-media-files:/opt/netbox/netbox/media:rw
+      - netbox-reports-files:/opt/netbox/netbox/reports:rw
+      - netbox-scripts-files:/opt/netbox/netbox/scripts:rw
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/login/ >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 30
+      start_period: 90s
+
+  netbox-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NETBOX_VERSION: ${NETBOX_VERSION:-v4.6.8-5.0.2}
+    depends_on:
+      netbox:
+        condition: service_healthy
+    env_file: env/netbox.env
+    user: "netbox:root"
+    command:
+      - /opt/netbox/venv/bin/python
+      - /opt/netbox/netbox/manage.py
+      - rqworker
+    volumes:
+      - ./configuration:/etc/netbox/config:ro
+      - ./:/opt/netbox-plugin-src:rw
+      - netbox-media-files:/opt/netbox/netbox/media:rw
+      - netbox-reports-files:/opt/netbox/netbox/reports:rw
+      - netbox-scripts-files:/opt/netbox/netbox/scripts:rw
+    healthcheck:
+      test: ["CMD-SHELL", "ps -aux | grep -v grep | grep -q rqworker || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  netbox-media-files:
+    driver: local
+  netbox-postgres:
+    driver: local
+  netbox-redis-cache-data:
+    driver: local
+  netbox-redis-data:
+    driver: local
+  netbox-reports-files:
+    driver: local
+  netbox-scripts-files:
+    driver: local

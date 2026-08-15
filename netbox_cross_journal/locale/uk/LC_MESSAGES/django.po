@@ -1,0 +1,202 @@
+# Ukrainian translation of netbox-cross-journal.
+msgid ""
+msgstr ""
+"Project-Id-Version: netbox-cross-journal\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-15 23:10+0000\n"
+"PO-Revision-Date: 2026-08-15 23:10+0000\n"
+"Last-Translator: \n"
+"Language-Team: Ukrainian\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != "
+"11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % "
+"100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || "
+"(n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
+
+msgid "Cover"
+msgstr "Обкладинка"
+
+msgid "Cross Journal"
+msgstr "Крос-журнал"
+
+msgid "Site:"
+msgstr "Сайт:"
+
+msgid "Location:"
+msgstr "Локація:"
+
+msgid "Rack:"
+msgstr "Шафа:"
+
+msgid "Generated from NetBox by the Cross Journal plugin."
+msgstr "Згенеровано з NetBox плагіном Cross Journal."
+
+msgid "Devices"
+msgstr "Пристрої"
+
+msgid "Name"
+msgstr "Назва"
+
+msgid "Device type"
+msgstr "Тип пристрою"
+
+msgid "Role"
+msgstr "Роль"
+
+msgid "Serial number"
+msgstr "Серійний номер"
+
+msgid "Status"
+msgstr "Статус"
+
+msgid "Location"
+msgstr "Розташування"
+
+msgid "IP"
+msgstr "IP"
+
+msgid "Tags"
+msgstr "Теги"
+
+msgid "Comments"
+msgstr "Коментарі"
+
+msgid "Data"
+msgstr "Дані"
+
+msgid "Cable"
+msgstr "Кабель"
+
+msgid "Cable type"
+msgstr "Тип кабелю"
+
+msgid "Device A"
+msgstr "Пристрій A"
+
+msgid "Port A"
+msgstr "Порт A"
+
+msgid "Device B"
+msgstr "Пристрій B"
+
+msgid "Port B"
+msgstr "Порт B"
+
+msgid "Comment"
+msgstr "Коментар"
+
+msgid "Power"
+msgstr "Живлення"
+
+msgid "Device"
+msgstr "Пристрій"
+
+msgid "Power port"
+msgstr "Порт живлення"
+
+msgid "PDU"
+msgstr "PDU"
+
+msgid "Outlet"
+msgstr "Розетка"
+
+msgid "DEVICES"
+msgstr "ПРИСТРОЇ"
+
+msgid "DATA"
+msgstr "ДАНІ"
+
+msgid "POWER"
+msgstr "ЖИВЛЕННЯ"
+
+msgid "excluded device statuses"
+msgstr "виключені статуси пристроїв"
+
+msgid "Separate sheets (Devices / Data / Power)"
+msgstr "Окремі аркуші (Пристрої / Дані / Живлення)"
+
+msgid "Single sheet (everything combined)"
+msgstr "Один аркуш (усе разом)"
+
+msgid "company name"
+msgstr "назва організації"
+
+msgid "Shown in the report header (optional)."
+msgstr "Показується у заголовку звіту (необов'язково)."
+
+msgid "include data cables"
+msgstr "включати кабелі даних"
+
+msgid "include power cables"
+msgstr "включати кабелі живлення"
+
+msgid "include tags"
+msgstr "включати теги"
+
+msgid "include IP addresses"
+msgstr "включати IP-адреси"
+
+msgid "include serial numbers"
+msgstr "включати серійні номери"
+
+msgid "include comments"
+msgstr "включати коментарі"
+
+msgid "Device comments can be long or contain internal notes."
+msgstr "Коментарі пристроїв можуть бути довгими або містити внутрішні нотатки."
+
+msgid "Excel file layout"
+msgstr "розкладка Excel-файлу"
+
+msgid ""
+"Devices with these statuses are left out of the report (e.g. "
+"“decommissioning”)."
+msgstr ""
+"Пристрої з цими статусами не потрапляють у звіт (наприклад, «виведені з "
+"експлуатації»)."
+
+msgid "settings"
+msgstr "налаштування"
+
+msgid "Cross Journal Settings"
+msgstr "Налаштування крос-журналу"
+
+msgid "Settings"
+msgstr "Налаштування"
+
+msgid "Preview"
+msgstr "Переглянути"
+
+msgid "Download Excel"
+msgstr "Завантажити Excel"
+
+msgid "Print"
+msgstr "Друк"
+
+msgid "Site"
+msgstr "Сайт"
+
+msgid "Rack"
+msgstr "Шафа"
+
+msgid "Data (cross-connects)"
+msgstr "Дані (крос-з'єднання)"
+
+msgid "Type"
+msgstr "Тип"
+
+msgid ""
+"Live, admin-editable report generation settings. Changes apply immediately "
+"— no restart needed."
+msgstr ""
+"Живі, редаговані з інтерфейсу налаштування генерації крос-журналу. Зміни "
+"діють одразу — перезапуск не потрібен."
+
+msgid "Save"
+msgstr "Зберегти"
+
+msgid "Cross Journal settings saved."
+msgstr "Налаштування крос-журналу збережено."

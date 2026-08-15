@@ -1,0 +1,9 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+
+# NetBox-Docker volumes (named volumes are outside repo, but keep local overrides clean)
+docker-compose.override.yml
