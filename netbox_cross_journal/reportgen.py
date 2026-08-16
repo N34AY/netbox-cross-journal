@@ -73,7 +73,11 @@ class ReportData:
 def _device_location_label(device) -> str:
     if device.position is not None:
         return f"U{int(device.position)}"
-    parent_bay = device.parent_bay
+    # Device.parent_bay is a reverse one-to-one accessor: on a device with no parent bay it
+    # *raises* RelatedObjectDoesNotExist rather than returning None. That exception also
+    # subclasses AttributeError specifically so getattr(..., default) works here — this
+    # isn't a try/except dodge, it's the documented way to probe an optional reverse O2O.
+    parent_bay = getattr(device, "parent_bay", None)
     if parent_bay is not None:
         return f"{parent_bay.device.name} / {parent_bay.name}"
     return "—"
