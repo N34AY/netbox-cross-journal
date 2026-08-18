@@ -14,4 +14,9 @@ urlpatterns = (
         views.ReportExcelView.as_view(),
         name="report_export_xlsx",
     ),
+    path(
+        "report/<int:content_type_id>/<int:object_id>/topology/",
+        views.TopologyView.as_view(),
+        name="topology",
+    ),
 )

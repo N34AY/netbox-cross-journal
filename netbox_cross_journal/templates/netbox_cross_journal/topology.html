@@ -1,0 +1,53 @@
+{% load i18n %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% trans "Topology" %} — {{ data.scope_label }}</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; color: #212529; }
+    h1 { margin-bottom: 0.25rem; }
+    .meta { color: #6c757d; margin-bottom: 1rem; }
+    .meta div { margin-bottom: 0.15rem; }
+    .legend { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: 0.85rem; }
+    .legend .swatch { display: inline-block; width: 1.5rem; height: 0; border-top-width: 3px; border-top-style: solid; vertical-align: middle; margin-right: 0.35rem; }
+    .legend .box { display: inline-block; width: 0.9rem; height: 0.9rem; border-radius: 3px; vertical-align: middle; margin-right: 0.35rem; }
+    .diagram { border: 1px solid #dee2e6; overflow: auto; }
+    .diagram svg { display: block; max-width: 100%; height: auto; }
+    .toolbar { position: fixed; top: 1rem; right: 1rem; }
+    .toolbar button {
+      padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer;
+      background: #0066cc; color: #fff; border: none; border-radius: 4px;
+    }
+    @media print {
+      .toolbar { display: none; }
+      body { margin: 0.5rem; }
+      .diagram { border: none; overflow: visible; }
+      .diagram svg { max-width: none; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button onclick="window.print()">{% trans "Print" %}</button>
+  </div>
+
+  <h1>{% if data.company_name %}{{ data.company_name }} — {% endif %}{% trans "Topology" %}</h1>
+  <div class="meta">
+    {% if data.site_name %}<div><strong>{% trans "Site" %}:</strong> {{ data.site_name }}</div>{% endif %}
+    {% if data.location_name %}<div><strong>{% trans "Location" %}:</strong> {{ data.location_name }}</div>{% endif %}
+    <div><strong>{% if data.scope_kind == "rack" %}{% trans "Rack" %}{% elif data.scope_kind == "location" %}{% trans "Location" %}{% else %}{% trans "Site" %}{% endif %}:</strong> {{ data.scope_label }}</div>
+  </div>
+
+  <div class="legend">
+    <span><span class="box" style="background:#2C3E50;"></span>{% trans "Device in scope" %}</span>
+    <span><span class="box" style="background:#f8f9fa; border:1px dashed #adb5bd;"></span>{% trans "Device outside scope" %}</span>
+    <span><span class="swatch" style="border-color:#2C3E50;"></span>{% trans "Data cable" %}</span>
+    <span><span class="swatch" style="border-color:#c0392b; border-top-style:dashed;"></span>{% trans "Power cable" %}</span>
+  </div>
+
+  <div class="diagram">
+    {{ svg|safe }}
+  </div>
+</body>
+</html>

@@ -17,5 +17,12 @@
     >
       <i class="mdi mdi-file-excel-outline"></i> {% trans "Download Excel" %}
     </a>
+    <a
+      href="{% url 'plugins:netbox_cross_journal:topology' object_type_id object.pk %}"
+      class="btn btn-sm btn-outline-primary"
+      target="_blank"
+    >
+      <i class="mdi mdi-graph-outline"></i> {% trans "Topology diagram" %}
+    </a>
   </div>
 </div>

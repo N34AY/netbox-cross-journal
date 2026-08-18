@@ -11,6 +11,7 @@ requires-python = ">=3.10"
 authors = [{ name = "Akademik NIS" }]
 dependencies = [
     "openpyxl>=3.1",
+    "graphviz>=0.20",
 ]
 
 [tool.setuptools]

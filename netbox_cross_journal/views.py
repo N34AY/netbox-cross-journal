@@ -12,6 +12,7 @@ from .excel import build_workbook
 from .forms import CrossJournalSettingsForm
 from .models import CrossJournalSettings
 from .reportgen import gather_report
+from .topology import build_topology_svg
 
 
 def _resolve_scope(content_type_id: int, object_id: int):
@@ -48,6 +49,19 @@ class ReportExcelView(LoginRequiredMixin, View):
         )
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
+
+
+class TopologyView(LoginRequiredMixin, View):
+    """Print-friendly SVG topology diagram for one scope object — a separate page from the
+    tabular report, since a diagram and a table serve different reading purposes."""
+
+    template_name = "netbox_cross_journal/topology.html"
+
+    def get(self, request, content_type_id, object_id):
+        scope = _resolve_scope(content_type_id, object_id)
+        data = gather_report(scope)
+        svg = build_topology_svg(data)
+        return render(request, self.template_name, {"data": data, "svg": svg})
 
 
 class SettingsEditView(LoginRequiredMixin, PermissionRequiredMixin, View):

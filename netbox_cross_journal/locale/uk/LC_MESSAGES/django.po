@@ -203,3 +203,21 @@ msgstr "Зберегти"
 
 msgid "Cross Journal settings saved."
 msgstr "Налаштування крос-журналу збережено."
+
+msgid "Topology"
+msgstr "Схема топології"
+
+msgid "Topology diagram"
+msgstr "Схема топології"
+
+msgid "Device in scope"
+msgstr "Пристрій у межах вибраного об'єкта"
+
+msgid "Device outside scope"
+msgstr "Пристрій поза межами вибраного об'єкта"
+
+msgid "Data cable"
+msgstr "Кабель даних"
+
+msgid "Power cable"
+msgstr "Кабель живлення"
