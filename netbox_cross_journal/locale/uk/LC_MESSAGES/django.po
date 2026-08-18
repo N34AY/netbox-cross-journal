@@ -88,6 +88,9 @@ msgstr "Порт B"
 msgid "Comment"
 msgstr "Коментар"
 
+msgid "Port comment"
+msgstr "Коментар порту"
+
 msgid "Power"
 msgstr "Живлення"
 

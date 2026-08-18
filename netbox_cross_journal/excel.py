@@ -80,11 +80,12 @@ def _write_devices(ws, data: ReportData):
 def _write_data_cables(ws, data: ReportData):
     ws.title = _("Data")
     headers = [_("Cable"), _("Cable type"), _("Device A"), _("Port A"),
-               _("Device B"), _("Port B"), _("Comment")]
+               _("Device B"), _("Port B"), _("Comment"), _("Port comment")]
     ws.append(headers)
     _style_header(ws)
     for c in data.data_cables:
-        ws.append([c.label, c.cable_type, c.a_device, c.a_port, c.b_device, c.b_port, c.comments[:1000]])
+        ws.append([c.label, c.cable_type, c.a_device, c.a_port, c.b_device, c.b_port,
+                   c.comments[:1000], c.port_comment[:1000]])
     _autosize(ws)
     _border_all(ws)
     ws.freeze_panes = "A2"
@@ -120,10 +121,11 @@ def _write_single_sheet(ws, data: ReportData):
         ws.append([_("DATA")])
         ws.cell(row=r, column=1).font = Font(bold=True, size=13)
         ws.append([_("Cable"), _("Cable type"), _("Device A"), _("Port A"),
-                    _("Device B"), _("Port B"), _("Comment")])
+                    _("Device B"), _("Port B"), _("Comment"), _("Port comment")])
         _style_header(ws, row=ws.max_row)
         for c in data.data_cables:
-            ws.append([c.label, c.cable_type, c.a_device, c.a_port, c.b_device, c.b_port, c.comments[:1000]])
+            ws.append([c.label, c.cable_type, c.a_device, c.a_port, c.b_device, c.b_port,
+                       c.comments[:1000], c.port_comment[:1000]])
 
     if data.power_cables:
         ws.append([])

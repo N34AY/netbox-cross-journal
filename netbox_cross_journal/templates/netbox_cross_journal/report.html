@@ -75,6 +75,8 @@
         <th>{% trans "Port A" %}</th>
         <th>{% trans "Device B" %}</th>
         <th>{% trans "Port B" %}</th>
+        <th>{% trans "Comment" %}</th>
+        <th>{% trans "Port comment" %}</th>
       </tr>
     </thead>
     <tbody>
@@ -86,6 +88,8 @@
         <td>{{ c.a_port }}</td>
         <td>{{ c.b_device }}</td>
         <td>{{ c.b_port }}</td>
+        <td>{{ c.comments }}</td>
+        <td>{{ c.port_comment }}</td>
       </tr>
       {% endfor %}
     </tbody>

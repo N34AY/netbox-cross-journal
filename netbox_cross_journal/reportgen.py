@@ -47,6 +47,7 @@ class CableRow:
     b_device: str
     b_port: str
     comments: str = ""
+    port_comment: str = ""
 
 
 @dataclass
@@ -118,6 +119,17 @@ def _resolve_termination(endpoint) -> tuple[str, str]:
     return (device.name if device else ""), endpoint.name
 
 
+def _combine_port_comments(a_description: str, b_description: str) -> str:
+    # Surfaces per-port notes (e.g. "cable runs to the server room but the far end isn't
+    # patched into anything yet") independently of any Cable.comments text, since that lives
+    # on the ComponentModel.description field of each termination, not on the Cable itself.
+    a_description = (a_description or "").strip()
+    b_description = (b_description or "").strip()
+    if a_description and b_description:
+        return f"A: {a_description}; Б: {b_description}"
+    return a_description or b_description
+
+
 def gather_report(scope) -> ReportData:
     settings = CrossJournalSettings.load()
     devices = _devices_for_scope(scope)
@@ -149,7 +161,21 @@ def gather_report(scope) -> ReportData:
         for accessor in _CABLE_COMPONENT_ACCESSORS:
             for component in getattr(device, accessor).all():
                 cable_id = component.cable_id
-                if not cable_id or cable_id in seen_cable_ids:
+                if not cable_id:
+                    # No Cable object — still worth a row if the port itself carries a note,
+                    # e.g. a cable is physically run but its far end was never patched into
+                    # anything in NetBox, so the only record of it is this description.
+                    if settings.include_comments and not isinstance(component, PowerPort):
+                        description = (component.description or "").strip()
+                        if description:
+                            data_cables.append(CableRow(
+                                id=0, label="", cable_type="",
+                                a_device=device.name, a_port=component.name,
+                                b_device="", b_port="",
+                                comments="", port_comment=description,
+                            ))
+                    continue
+                if cable_id in seen_cable_ids:
                     continue
                 seen_cable_ids.add(cable_id)
                 cable = Cable.objects.get(pk=cable_id)
@@ -173,15 +199,21 @@ def gather_report(scope) -> ReportData:
                             id=cable.pk, device=b_dev, port=b_port, pdu=a_dev, outlet=a_port,
                         ))
                 elif not is_power and settings.include_data_cables:
+                    port_comment = ""
+                    if settings.include_comments:
+                        a_desc = getattr(a_endpoint, "description", "") if a_endpoint else ""
+                        b_desc = getattr(b_endpoint, "description", "") if b_endpoint else ""
+                        port_comment = _combine_port_comments(a_desc, b_desc)
                     data_cables.append(CableRow(
                         id=cable.pk,
                         label=cable.label or f"#{cable.pk}",
                         cable_type=str(cable.get_type_display()) if cable.type else "",
                         a_device=a_dev, a_port=a_port, b_device=b_dev, b_port=b_port,
                         comments=(cable.comments or "") if settings.include_comments else "",
+                        port_comment=port_comment,
                     ))
 
-    data_cables.sort(key=lambda r: r.label)
+    data_cables.sort(key=lambda r: (r.label == "", r.label, r.a_device, r.a_port))
     power_cables.sort(key=lambda r: (r.pdu, r.outlet))
 
     kind = _scope_kind(scope)
