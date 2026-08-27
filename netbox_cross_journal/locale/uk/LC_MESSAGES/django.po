@@ -221,3 +221,18 @@ msgstr "Кабель даних"
 
 msgid "Power cable"
 msgstr "Кабель живлення"
+
+msgid "Box diagram"
+msgstr "Схема плінта"
+
+msgid "Not instantiated on this device"
+msgstr "Не створено на цьому пристрої"
+
+msgid "Free pair"
+msgstr "Вільна пара"
+
+msgid "Documented, no cable yet"
+msgstr "Задокументовано, кабель ще не додано"
+
+msgid "free"
+msgstr "вільна"

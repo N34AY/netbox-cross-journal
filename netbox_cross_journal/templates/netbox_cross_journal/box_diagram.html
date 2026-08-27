@@ -1,0 +1,90 @@
+{% load i18n %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% trans "Box diagram" %} — {{ data.device_name }}</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; color: #212529; }
+    h1 { margin-bottom: 0.25rem; }
+    .meta { color: #6c757d; margin-bottom: 1rem; }
+    .legend { display: flex; gap: 1.25rem; flex-wrap: wrap; margin-bottom: 1.5rem; font-size: 0.85rem; }
+    .legend .swatch { display: inline-block; width: 0.9rem; height: 0.9rem; border-radius: 3px; vertical-align: middle; margin-right: 0.35rem; border: 1px solid rgba(0,0,0,0.15); }
+
+    .plint { margin-bottom: 1.25rem; }
+    .plint-name { font-weight: 600; margin-bottom: 0.35rem; }
+    .pairs { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+    .cell {
+      width: 6.5rem; min-height: 3.6rem; border-radius: 4px; padding: 0.3rem 0.4rem;
+      font-size: 0.72rem; line-height: 1.2; text-decoration: none; color: #212529;
+      display: flex; flex-direction: column; gap: 0.15rem; overflow: hidden;
+    }
+    .cell .pos { font-weight: 700; font-size: 0.8rem; }
+    .cell .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cell .far { color: rgba(0,0,0,0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .cell.connected { border: 1px solid rgba(0,0,0,0.15); }
+    .cell.documented_only { background: #fff3cd; border: 1px dashed #d39e00; }
+    .cell.free { background: #f8f9fa; border: 1px dashed #ced4da; color: #adb5bd; }
+    .cell.unbuilt { background: transparent; border: 1px dashed #e9ecef; color: #dee2e6; }
+    .cell.connected:hover, .cell.documented_only:hover, .cell.free:hover { filter: brightness(0.95); cursor: pointer; }
+
+    .toolbar { position: fixed; top: 1rem; right: 1rem; }
+    .toolbar button {
+      padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer;
+      background: #0066cc; color: #fff; border: none; border-radius: 4px;
+    }
+    @media print {
+      .toolbar { display: none; }
+      body { margin: 0.5rem; }
+      .cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button onclick="window.print()">{% trans "Print" %}</button>
+  </div>
+
+  <h1>{% trans "Box diagram" %} — {{ data.device_name }}</h1>
+  <div class="meta">{{ data.device_type }}</div>
+
+  {% if data.legend %}
+  <div class="legend">
+    <span><span class="swatch" style="background:#f8f9fa;"></span>{% trans "Free pair" %}</span>
+    <span><span class="swatch" style="background:#fff3cd;"></span>{% trans "Documented, no cable yet" %}</span>
+    {% for entry in data.legend %}
+    <span><span class="swatch" style="background:#{{ entry.color|default:"6c757d" }};"></span>{{ entry.name }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% for plint in data.plints %}
+  <div class="plint">
+    <div class="plint-name">{{ plint.name }}</div>
+    <div class="pairs">
+      {% for cell in plint.cells %}
+        {% if cell.state == "unbuilt" %}
+        <div class="cell unbuilt" title="{% trans 'Not instantiated on this device' %}">
+          <span class="pos">{{ cell.position }}</span>
+        </div>
+        {% else %}
+        <a
+          class="cell {{ cell.state }}"
+          href="{% url 'dcim:frontport_edit' pk=cell.front_port_id %}"
+          title="{{ cell.description }}{% if cell.far_device %} → {{ cell.far_device }}/{{ cell.far_port }}{% endif %}{% if cell.cable_label %} ({{ cell.cable_label }}){% endif %}"
+          style="{% if cell.state == 'connected' and cell.tag_color %}background:#{{ cell.tag_color }};{% endif %}"
+        >
+          <span class="pos">{{ cell.position }}</span>
+          {% if cell.description %}<span class="label">{{ cell.description }}</span>{% endif %}
+          {% if cell.far_device %}<span class="far">{{ cell.far_device }}/{{ cell.far_port }}</span>{% endif %}
+          {% if cell.state == "free" %}<span class="label">{% trans "free" %}</span>{% endif %}
+        </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</body>
+</html>

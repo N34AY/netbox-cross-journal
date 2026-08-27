@@ -1,0 +1,15 @@
+{% load i18n %}
+<div class="card">
+  <h5 class="card-header">
+    <i class="mdi mdi-view-grid-outline"></i> {% trans "Cross Journal" %}
+  </h5>
+  <div class="card-body d-flex flex-column gap-2">
+    <a
+      href="{% url 'plugins:netbox_cross_journal:box_diagram' device.pk %}"
+      class="btn btn-sm btn-primary"
+      target="_blank"
+    >
+      <i class="mdi mdi-view-grid-outline"></i> {% trans "Box diagram" %}
+    </a>
+  </div>
+</div>

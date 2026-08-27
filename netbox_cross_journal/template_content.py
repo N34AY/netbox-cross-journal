@@ -20,4 +20,21 @@ def _make_panel_extension(model_label):
     return CrossJournalPanel
 
 
-template_extensions = [_make_panel_extension(model_label) for model_label in SCOPE_MODELS]
+class DeviceBoxDiagramPanel(PluginTemplateExtension):
+    """Only surfaces on devices that actually have RearPorts (patch panels / cross-connect
+    boxes) — a plain server or switch has nothing for the box diagram to draw."""
+
+    models = ["dcim.device"]
+
+    def right_page(self):
+        device = self.context["object"]
+        if not device.rearports.exists():
+            return ""
+        return self.render("netbox_cross_journal/inc/device_panel.html", extra_context={
+            "device": device,
+        })
+
+
+template_extensions = [
+    _make_panel_extension(model_label) for model_label in SCOPE_MODELS
+] + [DeviceBoxDiagramPanel]

@@ -19,4 +19,9 @@ urlpatterns = (
         views.TopologyView.as_view(),
         name="topology",
     ),
+    path(
+        "device/<int:device_id>/box-diagram/",
+        views.BoxDiagramView.as_view(),
+        name="box_diagram",
+    ),
 )

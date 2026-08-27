@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dcim.models import Device
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.contenttypes.models import ContentType
@@ -8,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 
+from .box_diagram import gather_box_diagram
 from .excel import build_workbook
 from .forms import CrossJournalSettingsForm
 from .models import CrossJournalSettings
@@ -62,6 +64,19 @@ class TopologyView(LoginRequiredMixin, View):
         data = gather_report(scope)
         svg = build_topology_svg(data)
         return render(request, self.template_name, {"data": data, "svg": svg})
+
+
+class BoxDiagramView(LoginRequiredMixin, View):
+    """Plint-by-pair grid for one cross-connect box (Device with RearPorts) — see
+    box_diagram.py for why this is a fixed grid rather than the same graph the topology
+    view uses."""
+
+    template_name = "netbox_cross_journal/box_diagram.html"
+
+    def get(self, request, device_id):
+        device = get_object_or_404(Device, pk=device_id)
+        data = gather_box_diagram(device)
+        return render(request, self.template_name, {"data": data})
 
 
 class SettingsEditView(LoginRequiredMixin, PermissionRequiredMixin, View):
