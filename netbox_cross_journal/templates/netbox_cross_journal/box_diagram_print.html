@@ -17,28 +17,33 @@
       background: #0066cc; color: #fff; border: none; border-radius: 3px;
     }
 
-    .grid { display: flex; flex-wrap: wrap; gap: 0.25cm; align-content: flex-start; }
+    /* Two plints per row, each stretched to fill its half of the page width, then the next
+       pair of plints continues below — rather than many narrow cards, since a separate
+       "опис"/"з'єднання" column pair per pair needs real width to stay legible. */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4cm; }
 
-    .plint {
-      width: 3.7cm; border: 0.75pt solid #333; break-inside: avoid;
-    }
+    .plint { border: 0.75pt solid #333; break-inside: avoid; }
     .plint-name {
-      font-size: 7.5pt; font-weight: 700; text-align: center;
-      background: #e9ecef; padding: 0.06cm 0; border-bottom: 0.75pt solid #333;
+      font-size: 8pt; font-weight: 700; text-align: center;
+      background: #e9ecef; padding: 0.08cm 0; border-bottom: 0.75pt solid #333;
     }
-    .plint table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 6.5pt; }
-    .plint td { padding: 0.035cm 0.1cm; border-bottom: 0.25pt solid #ccc; line-height: 1.15; }
+    .plint table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 7pt; }
+    .plint th {
+      font-size: 6pt; font-weight: 700; color: #666; text-align: left;
+      padding: 0.05cm 0.15cm; border-bottom: 0.5pt solid #333;
+    }
+    .plint td { padding: 0.05cm 0.15cm; border-bottom: 0.25pt solid #ccc; line-height: 1.2; }
     .plint tr:last-child td { border-bottom: none; }
     .plint td.pos {
-      width: 0.55cm; font-weight: 700; text-align: center; border-right: 0.25pt solid #ccc;
+      width: 0.6cm; font-weight: 700; text-align: center; border-right: 0.25pt solid #ccc;
       vertical-align: middle;
     }
-    .plint td.side {
-      width: 0.35cm; font-weight: 700; text-align: center; color: #666; font-size: 5.5pt;
+    .plint td.side { width: 0.4cm; font-weight: 700; text-align: center; color: #666; font-size: 6pt; }
+    .plint th.opis, .plint th.conn, .plint td.opis, .plint td.conn {
+      overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
     }
-    .plint td.info { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-    .plint tr.free td.info { color: #888; font-style: italic; }
-    .plint tr.unbuilt td.info { color: #ccc; }
+    .plint td.conn { color: #444; }
+    .plint td.muted { color: #888; font-style: italic; }
 
     @media print {
       .toolbar { display: none; }
@@ -60,20 +65,32 @@
     <div class="plint">
       <div class="plint-name">{{ plint.name }}</div>
       <table>
-        {% for pair in plint.pairs %}
-          {% for cell in pair.cells %}
-          <tr class="{{ cell.state }}">
-            {% if forloop.first %}<td class="pos" rowspan="{{ pair.cells|length }}">{{ pair.label }}</td>{% endif %}
-            <td class="side">{{ cell.side }}</td>
-            <td class="info">
-              {% if cell.state == "connected" %}{% if cell.description %}{{ cell.description }}{% else %}{{ cell.far_device }}/{{ cell.far_port }}{% endif %}
-              {% elif cell.state == "documented_only" %}{{ cell.description }}
-              {% elif cell.state == "free" %}{% trans "free" %}
-              {% else %}—{% endif %}
-            </td>
+        <thead>
+          <tr>
+            <th class="pos"></th>
+            <th class="side"></th>
+            <th class="opis">{% trans "Description" %}</th>
+            <th class="conn">{% trans "Connection" %}</th>
           </tr>
+        </thead>
+        <tbody>
+          {% for pair in plint.pairs %}
+            {% for cell in pair.cells %}
+            <tr class="{{ cell.state }}">
+              {% if forloop.first %}<td class="pos" rowspan="{{ pair.cells|length }}">{{ pair.label }}</td>{% endif %}
+              <td class="side">{{ cell.side }}</td>
+              {% if cell.state == "connected" or cell.state == "documented_only" %}
+              <td class="opis">{{ cell.description }}</td>
+              <td class="conn">{% if cell.far_device %}{{ cell.far_device }}/{{ cell.far_port }}{% endif %}</td>
+              {% elif cell.state == "free" %}
+              <td class="opis muted" colspan="2">{% trans "free" %}</td>
+              {% else %}
+              <td class="opis muted" colspan="2">—</td>
+              {% endif %}
+            </tr>
+            {% endfor %}
           {% endfor %}
-        {% endfor %}
+        </tbody>
       </table>
     </div>
     {% endfor %}
