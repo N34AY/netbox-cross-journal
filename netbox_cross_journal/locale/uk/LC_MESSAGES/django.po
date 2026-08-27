@@ -225,6 +225,9 @@ msgstr "Кабель живлення"
 msgid "Box diagram"
 msgstr "Схема плінта"
 
+msgid "Box diagram (print)"
+msgstr "Схема плінта (друк)"
+
 msgid "Not instantiated on this device"
 msgstr "Не створено на цьому пристрої"
 

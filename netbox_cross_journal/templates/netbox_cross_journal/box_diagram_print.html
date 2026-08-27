@@ -1,0 +1,75 @@
+{% load i18n %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% trans "Box diagram" %} — {{ data.device_name }}</title>
+  <style>
+    /* Physical (cm/pt) units throughout, not rem — this page's whole point is fitting a
+       known amount of paper, and only absolute units make that predictable in print. */
+    body { font-family: sans-serif; margin: 0.6cm; color: #000; }
+    h1 { font-size: 12pt; margin: 0 0 0.15cm; }
+    .meta { font-size: 8pt; color: #444; margin-bottom: 0.4cm; }
+
+    .toolbar { position: fixed; top: 0.5cm; right: 0.5cm; }
+    .toolbar button {
+      padding: 0.3cm 0.6cm; font-size: 10pt; cursor: pointer;
+      background: #0066cc; color: #fff; border: none; border-radius: 3px;
+    }
+
+    .grid { display: flex; flex-wrap: wrap; gap: 0.25cm; align-content: flex-start; }
+
+    .plint {
+      width: 3.7cm; border: 0.75pt solid #333; break-inside: avoid;
+    }
+    .plint-name {
+      font-size: 7.5pt; font-weight: 700; text-align: center;
+      background: #e9ecef; padding: 0.06cm 0; border-bottom: 0.75pt solid #333;
+    }
+    .plint table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 6.5pt; }
+    .plint td { padding: 0.035cm 0.1cm; border-bottom: 0.25pt solid #ccc; line-height: 1.15; }
+    .plint tr:last-child td { border-bottom: none; }
+    .plint td.pos {
+      width: 0.55cm; font-weight: 700; text-align: center; border-right: 0.25pt solid #ccc;
+    }
+    .plint td.info { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border-left: 0.15cm solid transparent; }
+    .plint tr.free td.info { color: #888; font-style: italic; }
+    .plint tr.unbuilt td.info { color: #ccc; }
+
+    @media print {
+      .toolbar { display: none; }
+      body { margin: 0.4cm; }
+      .plint { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button onclick="window.print()">{% trans "Print" %}</button>
+  </div>
+
+  <h1>{% trans "Box diagram" %} — {{ data.device_name }}</h1>
+  <div class="meta">{{ data.device_type }}</div>
+
+  <div class="grid">
+    {% for plint in data.plints %}
+    <div class="plint">
+      <div class="plint-name">{{ plint.name }}</div>
+      <table>
+        {% for cell in plint.cells %}
+        <tr class="{{ cell.state }}">
+          <td class="pos">{{ cell.position }}</td>
+          <td class="info" style="{% if cell.state == 'connected' and cell.tag_color %}border-left-color:#{{ cell.tag_color }};{% endif %}">
+            {% if cell.state == "connected" %}{% if cell.description %}{{ cell.description }}{% else %}{{ cell.far_device }}/{{ cell.far_port }}{% endif %}
+            {% elif cell.state == "documented_only" %}{{ cell.description }}
+            {% elif cell.state == "free" %}{% trans "free" %}
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endfor %}
+  </div>
+</body>
+</html>

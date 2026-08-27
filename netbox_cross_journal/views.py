@@ -79,6 +79,19 @@ class BoxDiagramView(LoginRequiredMixin, View):
         return render(request, self.template_name, {"data": data})
 
 
+class BoxDiagramPrintView(LoginRequiredMixin, View):
+    """Compact, space-minimized print layout for the same box diagram data: one small table
+    per plint instead of the color-grid cards, so a fully-populated box fits on a fraction of
+    a printed page instead of one page per screenful of cards."""
+
+    template_name = "netbox_cross_journal/box_diagram_print.html"
+
+    def get(self, request, device_id):
+        device = get_object_or_404(Device, pk=device_id)
+        data = gather_box_diagram(device)
+        return render(request, self.template_name, {"data": data})
+
+
 class SettingsEditView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """Live, admin-editable plugin configuration."""
 

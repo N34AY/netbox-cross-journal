@@ -11,5 +11,12 @@
     >
       <i class="mdi mdi-view-grid-outline"></i> {% trans "Box diagram" %}
     </a>
+    <a
+      href="{% url 'plugins:netbox_cross_journal:box_diagram_print' device.pk %}"
+      class="btn btn-sm btn-outline-primary"
+      target="_blank"
+    >
+      <i class="mdi mdi-printer-outline"></i> {% trans "Box diagram (print)" %}
+    </a>
   </div>
 </div>

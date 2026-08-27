@@ -24,4 +24,9 @@ urlpatterns = (
         views.BoxDiagramView.as_view(),
         name="box_diagram",
     ),
+    path(
+        "device/<int:device_id>/box-diagram/print/",
+        views.BoxDiagramPrintView.as_view(),
+        name="box_diagram_print",
+    ),
 )
