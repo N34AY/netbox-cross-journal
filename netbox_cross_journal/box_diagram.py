@@ -16,6 +16,16 @@ already tags far-end devices (e.g. "Інтернет", "ЕКМ") for other purpo
 carries a `color`. Reusing that means the legend adapts automatically to whatever tagging
 scheme is actually in use, instead of a second classification the plugin would have to be
 taught about separately.
+
+Some punch blocks have two independent IDC contacts per numbered position (side "A" — the
+face with the printed number — and side "B", the unlabeled opposite face); each side can be
+patched to a completely different destination. NetBox's Cable is strictly one-per-component,
+so that's modeled as two separate FrontPorts sharing one pair number, named "...<label> / A"
+and "...<label> / B". This module detects that suffix and groups the pair back together for
+display — it does not assume anything about RearPort.positions layout (e.g. that side B
+lives at position+N), so it works regardless of which position numbering a given box happens
+to use, and boxes with only one side per pair (no "/ A" or "/ B" suffix at all) render
+exactly as before.
 """
 from __future__ import annotations
 
@@ -25,6 +35,7 @@ from dataclasses import dataclass, field
 from dcim.models import Cable, Device, FrontPort, PortMapping, RearPort
 
 _NATURAL_KEY_RE = re.compile(r"(\d+)")
+_SIDE_SUFFIX_RE = re.compile(r"\s*/\s*([AB])$")
 
 
 def _natural_key(name: str) -> tuple:
@@ -46,13 +57,20 @@ class PositionCell:
     far_port: str = ""
     tag_name: str = ""
     tag_color: str = ""  # 6-hex-digit, no leading '#'
+    side: str = ""  # "A" | "B" | "" (no A/B split on this pair)
+
+
+@dataclass
+class PairGroup:
+    label: str  # the pair number shown on the diagram
+    cells: list[PositionCell] = field(default_factory=list)  # 1 cell, or 1 per side (A/B)
 
 
 @dataclass
 class PlintRow:
     rear_port_id: int
     name: str
-    cells: list[PositionCell] = field(default_factory=list)
+    pairs: list[PairGroup] = field(default_factory=list)
 
 
 @dataclass
@@ -86,6 +104,38 @@ def _far_end(front_port: FrontPort) -> tuple[str, str, str, str]:
     return peer_device.name, peer.name, tag_name, tag_color
 
 
+def _group_by_pair(flat_cells: list[PositionCell]) -> list[PairGroup]:
+    """Groups same-pair A/B cells together by stripping a trailing " / A" or " / B" off the
+    front port name — see the module docstring for why this, rather than position math, is
+    the grouping key."""
+    groups: dict[str, list[PositionCell]] = {}
+    order: list[str] = []
+    for cell in flat_cells:
+        if cell.state == "unbuilt":
+            key = f"__unbuilt_{cell.position}__"
+        else:
+            m = _SIDE_SUFFIX_RE.search(cell.front_port_name)
+            if m:
+                cell.side = m.group(1)
+                key = cell.front_port_name[:m.start()]
+            else:
+                key = cell.front_port_name
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(cell)
+
+    pair_groups = [
+        PairGroup(
+            label=str(min(c.position for c in groups[key])),
+            cells=sorted(groups[key], key=lambda c: (c.side, c.position)),
+        )
+        for key in order
+    ]
+    pair_groups.sort(key=lambda g: int(g.label))
+    return pair_groups
+
+
 def gather_box_diagram(device: Device) -> BoxDiagramData:
     rear_ports = list(RearPort.objects.filter(device=device))
     rear_ports.sort(key=lambda rp: _natural_key(rp.name))
@@ -103,11 +153,11 @@ def gather_box_diagram(device: Device) -> BoxDiagramData:
                 "front_port", "front_port__device"
             )
         }
-        row = PlintRow(rear_port_id=rp.pk, name=rp.name)
+        flat_cells: list[PositionCell] = []
         for position in range(1, rp.positions + 1):
             fp = front_ports_by_position.get(position)
             if fp is None:
-                row.cells.append(PositionCell(position=position, state="unbuilt"))
+                flat_cells.append(PositionCell(position=position, state="unbuilt"))
                 continue
 
             description = (fp.description or "").strip()
@@ -116,7 +166,7 @@ def gather_box_diagram(device: Device) -> BoxDiagramData:
                 far_device, far_port, tag_name, tag_color = _far_end(fp)
                 if tag_name:
                     legend.setdefault(tag_name, tag_color)
-                row.cells.append(PositionCell(
+                flat_cells.append(PositionCell(
                     position=position, state="connected",
                     front_port_id=fp.pk, front_port_name=fp.name,
                     description=description, cable_label=cable.label or f"#{cable.pk}",
@@ -124,16 +174,17 @@ def gather_box_diagram(device: Device) -> BoxDiagramData:
                     tag_name=tag_name, tag_color=tag_color,
                 ))
             elif description:
-                row.cells.append(PositionCell(
+                flat_cells.append(PositionCell(
                     position=position, state="documented_only",
                     front_port_id=fp.pk, front_port_name=fp.name, description=description,
                 ))
             else:
-                row.cells.append(PositionCell(
+                flat_cells.append(PositionCell(
                     position=position, state="free",
                     front_port_id=fp.pk, front_port_name=fp.name,
                 ))
-        plints.append(row)
+
+        plints.append(PlintRow(rear_port_id=rp.pk, name=rp.name, pairs=_group_by_pair(flat_cells)))
 
     return BoxDiagramData(
         device_id=device.pk,

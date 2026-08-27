@@ -31,6 +31,10 @@
     .plint tr:last-child td { border-bottom: none; }
     .plint td.pos {
       width: 0.55cm; font-weight: 700; text-align: center; border-right: 0.25pt solid #ccc;
+      vertical-align: middle;
+    }
+    .plint td.side {
+      width: 0.35cm; font-weight: 700; text-align: center; color: #666; font-size: 5.5pt;
     }
     .plint td.info { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border-left: 0.15cm solid transparent; }
     .plint tr.free td.info { color: #888; font-style: italic; }
@@ -56,16 +60,19 @@
     <div class="plint">
       <div class="plint-name">{{ plint.name }}</div>
       <table>
-        {% for cell in plint.cells %}
-        <tr class="{{ cell.state }}">
-          <td class="pos">{{ cell.position }}</td>
-          <td class="info" style="{% if cell.state == 'connected' and cell.tag_color %}border-left-color:#{{ cell.tag_color }};{% endif %}">
-            {% if cell.state == "connected" %}{% if cell.description %}{{ cell.description }}{% else %}{{ cell.far_device }}/{{ cell.far_port }}{% endif %}
-            {% elif cell.state == "documented_only" %}{{ cell.description }}
-            {% elif cell.state == "free" %}{% trans "free" %}
-            {% else %}—{% endif %}
-          </td>
-        </tr>
+        {% for pair in plint.pairs %}
+          {% for cell in pair.cells %}
+          <tr class="{{ cell.state }}">
+            {% if forloop.first %}<td class="pos" rowspan="{{ pair.cells|length }}">{{ pair.label }}</td>{% endif %}
+            <td class="side">{{ cell.side }}</td>
+            <td class="info" style="{% if cell.state == 'connected' and cell.tag_color %}border-left-color:#{{ cell.tag_color }};{% endif %}">
+              {% if cell.state == "connected" %}{% if cell.description %}{{ cell.description }}{% else %}{{ cell.far_device }}/{{ cell.far_port }}{% endif %}
+              {% elif cell.state == "documented_only" %}{{ cell.description }}
+              {% elif cell.state == "free" %}{% trans "free" %}
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
         {% endfor %}
       </table>
     </div>

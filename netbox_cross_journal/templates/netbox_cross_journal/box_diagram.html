@@ -30,6 +30,29 @@
     .cell.unbuilt { background: transparent; border: 1px dashed #e9ecef; color: #dee2e6; }
     .cell.connected:hover, .cell.documented_only:hover, .cell.free:hover { filter: brightness(0.95); cursor: pointer; }
 
+    /* A pair with two independently-cabled sides (see box_diagram.py) renders as one
+       position-labeled card containing two stacked, independently clickable side rows. */
+    .cell-pair {
+      width: 6.5rem; border-radius: 4px; border: 1px solid rgba(0,0,0,0.15); overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .cell-pair .pos-label {
+      font-weight: 700; font-size: 0.7rem; padding: 0.1rem 0.4rem; background: #e9ecef;
+    }
+    .cell-pair .side {
+      flex: 1; padding: 0.2rem 0.4rem; font-size: 0.65rem; line-height: 1.15;
+      text-decoration: none; color: #212529; display: flex; flex-direction: column; gap: 0.1rem;
+      overflow: hidden;
+    }
+    .cell-pair .side + .side { border-top: 1px dashed rgba(0,0,0,0.2); }
+    .cell-pair .side .side-tag { font-weight: 700; opacity: 0.55; }
+    .cell-pair .side .label, .cell-pair .side .far {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cell-pair .side.documented_only { background: #fff3cd; }
+    .cell-pair .side.free { background: #f8f9fa; color: #adb5bd; }
+    .cell-pair .side:hover { filter: brightness(0.95); cursor: pointer; }
+
     .toolbar { position: fixed; top: 1rem; right: 1rem; }
     .toolbar button {
       padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer;
@@ -64,23 +87,44 @@
   <div class="plint">
     <div class="plint-name">{{ plint.name }}</div>
     <div class="pairs">
-      {% for cell in plint.cells %}
-        {% if cell.state == "unbuilt" %}
-        <div class="cell unbuilt" title="{% trans 'Not instantiated on this device' %}">
-          <span class="pos">{{ cell.position }}</span>
-        </div>
+      {% for pair in plint.pairs %}
+        {% if pair.cells|length == 1 %}
+          {% with cell=pair.cells.0 %}
+          {% if cell.state == "unbuilt" %}
+          <div class="cell unbuilt" title="{% trans 'Not instantiated on this device' %}">
+            <span class="pos">{{ cell.position }}</span>
+          </div>
+          {% else %}
+          <a
+            class="cell {{ cell.state }}"
+            href="{% url 'dcim:frontport_edit' pk=cell.front_port_id %}"
+            title="{{ cell.description }}{% if cell.far_device %} → {{ cell.far_device }}/{{ cell.far_port }}{% endif %}{% if cell.cable_label %} ({{ cell.cable_label }}){% endif %}"
+            style="{% if cell.state == 'connected' and cell.tag_color %}background:#{{ cell.tag_color }};{% endif %}"
+          >
+            <span class="pos">{{ cell.position }}</span>
+            {% if cell.description %}<span class="label">{{ cell.description }}</span>{% endif %}
+            {% if cell.far_device %}<span class="far">{{ cell.far_device }}/{{ cell.far_port }}</span>{% endif %}
+            {% if cell.state == "free" %}<span class="label">{% trans "free" %}</span>{% endif %}
+          </a>
+          {% endif %}
+          {% endwith %}
         {% else %}
-        <a
-          class="cell {{ cell.state }}"
-          href="{% url 'dcim:frontport_edit' pk=cell.front_port_id %}"
-          title="{{ cell.description }}{% if cell.far_device %} → {{ cell.far_device }}/{{ cell.far_port }}{% endif %}{% if cell.cable_label %} ({{ cell.cable_label }}){% endif %}"
-          style="{% if cell.state == 'connected' and cell.tag_color %}background:#{{ cell.tag_color }};{% endif %}"
-        >
-          <span class="pos">{{ cell.position }}</span>
-          {% if cell.description %}<span class="label">{{ cell.description }}</span>{% endif %}
-          {% if cell.far_device %}<span class="far">{{ cell.far_device }}/{{ cell.far_port }}</span>{% endif %}
-          {% if cell.state == "free" %}<span class="label">{% trans "free" %}</span>{% endif %}
-        </a>
+        <div class="cell-pair">
+          <div class="pos-label">{{ pair.label }}</div>
+          {% for cell in pair.cells %}
+          <a
+            class="side {{ cell.state }}"
+            href="{% url 'dcim:frontport_edit' pk=cell.front_port_id %}"
+            title="{{ cell.description }}{% if cell.far_device %} → {{ cell.far_device }}/{{ cell.far_port }}{% endif %}{% if cell.cable_label %} ({{ cell.cable_label }}){% endif %}"
+            style="{% if cell.state == 'connected' and cell.tag_color %}background:#{{ cell.tag_color }};{% endif %}"
+          >
+            <span class="side-tag">{{ cell.side }}</span>
+            {% if cell.description %}<span class="label">{{ cell.description }}</span>{% endif %}
+            {% if cell.far_device %}<span class="far">{{ cell.far_device }}/{{ cell.far_port }}</span>{% endif %}
+            {% if cell.state == "free" %}<span class="label">{% trans "free" %}</span>{% endif %}
+          </a>
+          {% endfor %}
+        </div>
         {% endif %}
       {% endfor %}
     </div>
