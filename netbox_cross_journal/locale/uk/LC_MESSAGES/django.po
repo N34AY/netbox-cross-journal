@@ -245,3 +245,6 @@ msgstr "Опис"
 
 msgid "Connection"
 msgstr "З'єднання"
+
+msgid "Back to device"
+msgstr "До пристрою"

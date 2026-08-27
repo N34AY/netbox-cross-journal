@@ -1,120 +1,74 @@
+{% extends 'generic/_base.html' %}
 {% load i18n %}
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>{% trans "Box diagram" %} — {{ data.device_name }}</title>
+
+{% block title %}{% trans "Box diagram" %} — {{ data.device_name }}{% endblock %}
+
+{% block subtitle %}<div class="text-secondary">{{ data.device_type }}</div>{% endblock %}
+
+{% block control-buttons %}
+  <a href="{% url 'dcim:device' pk=data.device_id %}" class="btn btn-outline-secondary">
+    <i class="mdi mdi-arrow-left"></i> {% trans "Back to device" %}
+  </a>
+{% endblock %}
+
+{% block content %}
   <style>
-    body { font-family: sans-serif; margin: 2rem; color: #212529; }
-    h1 { margin-bottom: 0.25rem; }
-    .meta { color: #6c757d; margin-bottom: 1rem; }
-
-    .plint { margin-bottom: 1.25rem; }
-    .plint-name { font-weight: 600; margin-bottom: 0.35rem; }
-    .pairs { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-
-    .cell {
-      width: 6.5rem; min-height: 3.6rem; border-radius: 4px; padding: 0.3rem 0.4rem;
-      font-size: 0.72rem; line-height: 1.2; text-decoration: none; color: #212529;
-      display: flex; flex-direction: column; gap: 0.15rem; overflow: hidden;
+    /* One card per plint, laid out in as many columns as fit — same idea as the print
+       page's "two per row", just adaptive instead of a fixed page width. Real <table>
+       markup (not custom flexboxed cards) so "Опис" vs "Підключення" is an explicit,
+       always-visible column header rather than two stacked lines a reader has to
+       distinguish by eye, and so long text wraps normally instead of ever being clipped. */
+    .plints-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr)); gap: 1rem;
+      align-items: start;
     }
-    .cell .pos { font-weight: 700; font-size: 0.8rem; }
-    .cell .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .cell .far { color: rgba(0,0,0,0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    .cell.connected { border: 1px solid rgba(0,0,0,0.15); }
-    .cell.documented_only { background: #fff3cd; border: 1px dashed #d39e00; }
-    .cell.free { background: #f8f9fa; border: 1px dashed #ced4da; color: #adb5bd; }
-    .cell.unbuilt { background: transparent; border: 1px dashed #e9ecef; color: #dee2e6; }
-    .cell.connected:hover, .cell.documented_only:hover, .cell.free:hover { filter: brightness(0.95); cursor: pointer; }
-
-    /* A pair with two independently-cabled sides (see box_diagram.py) renders as one
-       position-labeled card containing two stacked, independently clickable side rows. */
-    .cell-pair {
-      width: 6.5rem; border-radius: 4px; border: 1px solid rgba(0,0,0,0.15); overflow: hidden;
-      display: flex; flex-direction: column;
-    }
-    .cell-pair .pos-label {
-      font-weight: 700; font-size: 0.7rem; padding: 0.1rem 0.4rem; background: #e9ecef;
-    }
-    .cell-pair .side {
-      flex: 1; padding: 0.2rem 0.4rem; font-size: 0.65rem; line-height: 1.15;
-      text-decoration: none; color: #212529; display: flex; flex-direction: column; gap: 0.1rem;
-      overflow: hidden;
-    }
-    .cell-pair .side + .side { border-top: 1px dashed rgba(0,0,0,0.2); }
-    .cell-pair .side .side-tag { font-weight: 700; opacity: 0.55; }
-    .cell-pair .side .label, .cell-pair .side .far {
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .cell-pair .side.documented_only { background: #fff3cd; }
-    .cell-pair .side.free { background: #f8f9fa; color: #adb5bd; }
-    .cell-pair .side:hover { filter: brightness(0.95); cursor: pointer; }
-
-    .toolbar { position: fixed; top: 1rem; right: 1rem; }
-    .toolbar button {
-      padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer;
-      background: #0066cc; color: #fff; border: none; border-radius: 4px;
-    }
-    @media print {
-      .toolbar { display: none; }
-      body { margin: 0.5rem; }
-      .cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
+    .plint-table th.col-pos, .plint-table td.col-pos { width: 2.5rem; text-align: center; }
+    .plint-table th.col-side, .plint-table td.col-side { width: 2rem; text-align: center; }
+    .plint-table td.col-conn { font-family: var(--tblr-font-monospace, monospace); font-size: 0.85em; }
+    .plint-table tbody tr.clickable { cursor: pointer; }
+    .plint-table tbody tr.unbuilt td { opacity: 0.4; }
   </style>
-</head>
-<body>
-  <div class="toolbar">
-    <button onclick="window.print()">{% trans "Print" %}</button>
-  </div>
 
-  <h1>{% trans "Box diagram" %} — {{ data.device_name }}</h1>
-  <div class="meta">{{ data.device_type }}</div>
-
-  {% for plint in data.plints %}
-  <div class="plint">
-    <div class="plint-name">{{ plint.name }}</div>
-    <div class="pairs">
-      {% for pair in plint.pairs %}
-        {% if pair.cells|length == 1 %}
-          {% with cell=pair.cells.0 %}
-          {% if cell.state == "unbuilt" %}
-          <div class="cell unbuilt" title="{% trans 'Not instantiated on this device' %}">
-            <span class="pos">{{ cell.position }}</span>
-          </div>
-          {% else %}
-          <a
-            class="cell {{ cell.state }}"
-            href="{% url 'dcim:frontport_edit' pk=cell.front_port_id %}"
-            title="{{ cell.description }}{% if cell.far_device %} → {{ cell.far_device }}/{{ cell.far_port }}{% endif %}{% if cell.cable_label %} ({{ cell.cable_label }}){% endif %}"
-          >
-            <span class="pos">{{ cell.position }}</span>
-            {% if cell.description %}<span class="label">{{ cell.description }}</span>{% endif %}
-            {% if cell.far_device %}<span class="far">{{ cell.far_device }}/{{ cell.far_port }}</span>{% endif %}
-            {% if cell.state == "free" %}<span class="label">{% trans "free" %}</span>{% endif %}
-          </a>
-          {% endif %}
-          {% endwith %}
-        {% else %}
-        <div class="cell-pair">
-          <div class="pos-label">{{ pair.label }}</div>
-          {% for cell in pair.cells %}
-          <a
-            class="side {{ cell.state }}"
-            href="{% url 'dcim:frontport_edit' pk=cell.front_port_id %}"
-            title="{{ cell.description }}{% if cell.far_device %} → {{ cell.far_device }}/{{ cell.far_port }}{% endif %}{% if cell.cable_label %} ({{ cell.cable_label }}){% endif %}"
-          >
-            <span class="side-tag">{{ cell.side }}</span>
-            {% if cell.description %}<span class="label">{{ cell.description }}</span>{% endif %}
-            {% if cell.far_device %}<span class="far">{{ cell.far_device }}/{{ cell.far_port }}</span>{% endif %}
-            {% if cell.state == "free" %}<span class="label">{% trans "free" %}</span>{% endif %}
-          </a>
+  <div class="plints-grid">
+    {% for plint in data.plints %}
+    <div class="card">
+      <h5 class="card-header">{{ plint.name }}</h5>
+      <table class="table table-hover plint-table mb-0">
+        <thead>
+          <tr>
+            <th class="col-pos"></th>
+            <th class="col-side"></th>
+            <th>{% trans "Description" %}</th>
+            <th>{% trans "Connection" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pair in plint.pairs %}
+            {% for cell in pair.cells %}
+            <tr
+              class="{{ cell.state }}{% if cell.state != 'unbuilt' %} clickable{% endif %}"
+              {% if cell.state != "unbuilt" %}
+              onclick="window.location='{% url 'dcim:frontport_edit' pk=cell.front_port_id %}'"
+              {% else %}
+              title="{% trans 'Not instantiated on this device' %}"
+              {% endif %}
+            >
+              {% if forloop.first %}<td class="col-pos fw-bold align-middle" rowspan="{{ pair.cells|length }}">{{ pair.label }}</td>{% endif %}
+              <td class="col-side text-secondary">{{ cell.side }}</td>
+              {% if cell.state == "connected" or cell.state == "documented_only" %}
+              <td>{{ cell.description|default:"—" }}</td>
+              <td class="col-conn">{% if cell.far_device %}{{ cell.far_device }}/{{ cell.far_port }}{% else %}—{% endif %}</td>
+              {% elif cell.state == "free" %}
+              <td colspan="2" class="text-secondary fst-italic">{% trans "free" %}</td>
+              {% else %}
+              <td colspan="2" class="text-secondary">—</td>
+              {% endif %}
+            </tr>
+            {% endfor %}
           {% endfor %}
-        </div>
-        {% endif %}
-      {% endfor %}
+        </tbody>
+      </table>
     </div>
+    {% endfor %}
   </div>
-  {% endfor %}
-</body>
-</html>
+{% endblock %}
