@@ -11,12 +11,6 @@ when the actual question inside a box is "which pair goes where, plint by plint"
 grid — the same shape a technician sees looking at the physical punch block — answers that
 directly and doesn't degrade as pair count grows.
 
-Coloring is intentionally not a hardcoded "internet vs telephony" classifier: this instance
-already tags far-end devices (e.g. "Інтернет", "ЕКМ") for other purposes, and Tag already
-carries a `color`. Reusing that means the legend adapts automatically to whatever tagging
-scheme is actually in use, instead of a second classification the plugin would have to be
-taught about separately.
-
 Some punch blocks have two independent IDC contacts per numbered position (side "A" — the
 face with the printed number — and side "B", the unlabeled opposite face); each side can be
 patched to a completely different destination. NetBox's Cable is strictly one-per-component,
@@ -55,8 +49,6 @@ class PositionCell:
     cable_label: str = ""
     far_device: str = ""
     far_port: str = ""
-    tag_name: str = ""
-    tag_color: str = ""  # 6-hex-digit, no leading '#'
     side: str = ""  # "A" | "B" | "" (no A/B split on this pair)
 
 
@@ -74,34 +66,24 @@ class PlintRow:
 
 
 @dataclass
-class LegendEntry:
-    name: str
-    color: str
-
-
-@dataclass
 class BoxDiagramData:
     device_id: int
     device_name: str
     device_type: str
     plints: list[PlintRow]
-    legend: list[LegendEntry]
 
 
-def _far_end(front_port: FrontPort) -> tuple[str, str, str, str]:
-    """Returns (far_device_name, far_port_name, tag_name, tag_color) for whatever is on the
-    other end of front_port's cable, or ("", "", "", "") if nothing resolves."""
+def _far_end(front_port: FrontPort) -> tuple[str, str]:
+    """Returns (far_device_name, far_port_name) for whatever is on the other end of
+    front_port's cable, or ("", "") if nothing resolves."""
     peers = front_port.link_peers
     if not peers:
-        return "", "", "", ""
+        return "", ""
     peer = peers[0]
     peer_device = getattr(peer, "device", None)
     if peer_device is None:
-        return "", peer.name, "", ""
-    tag = peer_device.tags.first()
-    tag_name = tag.name if tag else ""
-    tag_color = tag.color if tag else ""
-    return peer_device.name, peer.name, tag_name, tag_color
+        return "", peer.name
+    return peer_device.name, peer.name
 
 
 def _group_by_pair(flat_cells: list[PositionCell]) -> list[PairGroup]:
@@ -141,7 +123,6 @@ def gather_box_diagram(device: Device) -> BoxDiagramData:
     rear_ports.sort(key=lambda rp: _natural_key(rp.name))
 
     plints: list[PlintRow] = []
-    legend: dict[str, str] = {}
 
     for rp in rear_ports:
         # NetBox 4.6+ links Front/RearPort through an explicit PortMapping row (each side has
@@ -163,15 +144,12 @@ def gather_box_diagram(device: Device) -> BoxDiagramData:
             description = (fp.description or "").strip()
             if fp.cable_id:
                 cable = Cable.objects.get(pk=fp.cable_id)
-                far_device, far_port, tag_name, tag_color = _far_end(fp)
-                if tag_name:
-                    legend.setdefault(tag_name, tag_color)
+                far_device, far_port = _far_end(fp)
                 flat_cells.append(PositionCell(
                     position=position, state="connected",
                     front_port_id=fp.pk, front_port_name=fp.name,
                     description=description, cable_label=cable.label or f"#{cable.pk}",
                     far_device=far_device, far_port=far_port,
-                    tag_name=tag_name, tag_color=tag_color,
                 ))
             elif description:
                 flat_cells.append(PositionCell(
@@ -191,5 +169,4 @@ def gather_box_diagram(device: Device) -> BoxDiagramData:
         device_name=device.name or f"#{device.pk}",
         device_type=str(device.device_type),
         plints=plints,
-        legend=[LegendEntry(name=n, color=c) for n, c in sorted(legend.items())],
     )

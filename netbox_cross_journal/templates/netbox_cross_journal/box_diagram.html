@@ -8,8 +8,6 @@
     body { font-family: sans-serif; margin: 2rem; color: #212529; }
     h1 { margin-bottom: 0.25rem; }
     .meta { color: #6c757d; margin-bottom: 1rem; }
-    .legend { display: flex; gap: 1.25rem; flex-wrap: wrap; margin-bottom: 1.5rem; font-size: 0.85rem; }
-    .legend .swatch { display: inline-block; width: 0.9rem; height: 0.9rem; border-radius: 3px; vertical-align: middle; margin-right: 0.35rem; border: 1px solid rgba(0,0,0,0.15); }
 
     .plint { margin-bottom: 1.25rem; }
     .plint-name { font-weight: 600; margin-bottom: 0.35rem; }
@@ -73,16 +71,6 @@
   <h1>{% trans "Box diagram" %} — {{ data.device_name }}</h1>
   <div class="meta">{{ data.device_type }}</div>
 
-  {% if data.legend %}
-  <div class="legend">
-    <span><span class="swatch" style="background:#f8f9fa;"></span>{% trans "Free pair" %}</span>
-    <span><span class="swatch" style="background:#fff3cd;"></span>{% trans "Documented, no cable yet" %}</span>
-    {% for entry in data.legend %}
-    <span><span class="swatch" style="background:#{{ entry.color|default:"6c757d" }};"></span>{{ entry.name }}</span>
-    {% endfor %}
-  </div>
-  {% endif %}
-
   {% for plint in data.plints %}
   <div class="plint">
     <div class="plint-name">{{ plint.name }}</div>
@@ -99,7 +87,6 @@
             class="cell {{ cell.state }}"
             href="{% url 'dcim:frontport_edit' pk=cell.front_port_id %}"
             title="{{ cell.description }}{% if cell.far_device %} → {{ cell.far_device }}/{{ cell.far_port }}{% endif %}{% if cell.cable_label %} ({{ cell.cable_label }}){% endif %}"
-            style="{% if cell.state == 'connected' and cell.tag_color %}background:#{{ cell.tag_color }};{% endif %}"
           >
             <span class="pos">{{ cell.position }}</span>
             {% if cell.description %}<span class="label">{{ cell.description }}</span>{% endif %}
@@ -116,7 +103,6 @@
             class="side {{ cell.state }}"
             href="{% url 'dcim:frontport_edit' pk=cell.front_port_id %}"
             title="{{ cell.description }}{% if cell.far_device %} → {{ cell.far_device }}/{{ cell.far_port }}{% endif %}{% if cell.cable_label %} ({{ cell.cable_label }}){% endif %}"
-            style="{% if cell.state == 'connected' and cell.tag_color %}background:#{{ cell.tag_color }};{% endif %}"
           >
             <span class="side-tag">{{ cell.side }}</span>
             {% if cell.description %}<span class="label">{{ cell.description }}</span>{% endif %}

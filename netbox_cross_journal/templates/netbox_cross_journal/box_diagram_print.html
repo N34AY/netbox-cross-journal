@@ -36,7 +36,7 @@
     .plint td.side {
       width: 0.35cm; font-weight: 700; text-align: center; color: #666; font-size: 5.5pt;
     }
-    .plint td.info { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; border-left: 0.15cm solid transparent; }
+    .plint td.info { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
     .plint tr.free td.info { color: #888; font-style: italic; }
     .plint tr.unbuilt td.info { color: #ccc; }
 
@@ -65,7 +65,7 @@
           <tr class="{{ cell.state }}">
             {% if forloop.first %}<td class="pos" rowspan="{{ pair.cells|length }}">{{ pair.label }}</td>{% endif %}
             <td class="side">{{ cell.side }}</td>
-            <td class="info" style="{% if cell.state == 'connected' and cell.tag_color %}border-left-color:#{{ cell.tag_color }};{% endif %}">
+            <td class="info">
               {% if cell.state == "connected" %}{% if cell.description %}{{ cell.description }}{% else %}{{ cell.far_device }}/{{ cell.far_port }}{% endif %}
               {% elif cell.state == "documented_only" %}{{ cell.description }}
               {% elif cell.state == "free" %}{% trans "free" %}
