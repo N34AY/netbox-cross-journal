@@ -86,6 +86,13 @@ class BoxDiagramData:
     device_name: str
     device_type: str
     plints: list[PlintRow]
+    # plints split left/right by alternating index (plints[0], plints[2], ... on the left;
+    # plints[1], plints[3], ... on the right) so the screen view can render two independent
+    # top-to-bottom stacks — collapsing a card then just lets normal block flow slide the rest
+    # of *that* stack up, while still reading left-to-right, top-to-bottom in card order. A
+    # CSS-only masonry (multi-column) layout looked right at first but reorders cards by the
+    # browser's own height-balancing instead of source order — see the chat this was fixed in.
+    columns: list[list[PlintRow]] = field(default_factory=list)
 
 
 def _resolve_endpoint(
@@ -218,9 +225,14 @@ def gather_box_diagram(device: Device) -> BoxDiagramData:
 
         plints.append(PlintRow(rear_port_id=rp.pk, name=rp.name, pairs=_group_by_pair(flat_cells)))
 
+    columns: list[list[PlintRow]] = [[], []]
+    for i, plint in enumerate(plints):
+        columns[i % 2].append(plint)
+
     return BoxDiagramData(
         device_id=device.pk,
         device_name=device.name or f"#{device.pk}",
         device_type=str(device.device_type),
         plints=plints,
+        columns=columns,
     )

@@ -13,16 +13,19 @@
 
 {% block content %}
   <style>
-    /* One card per plint, two per row. CSS multi-column (not grid) on purpose: collapsing a
-       card shrinks it in place and lets whatever comes after it in the *same column* slide
-       up to fill the gap, the way the user asked for ("collapse plint 1, plint 3 moves up
-       under it") — a fixed grid's rows stay locked to their tallest member and wouldn't
-       reflow like that. Real <table> markup (not custom flexboxed cards) so "Опис" vs
+    /* One card per plint, split left/right by alternating index (box_diagram.py's
+       BoxDiagramData.columns) into two independent top-to-bottom stacks — plain flex, no CSS
+       multi-column. column-count reads right at first glance but *reorders cards by the
+       browser's own height-balancing* instead of source order (plint 1 and 2 don't reliably
+       end up side by side), which is exactly backwards from "left to right, top to bottom".
+       Two explicit stacks keep that reading order and still get the collapse behavior the
+       reorder was meant to buy: collapsing a card is just plain block flow letting the rest
+       of *that* stack slide up. Real <table> markup (not custom flexboxed cards) so "Опис" vs
        "Підключення" is an explicit, always-visible column header rather than two stacked
        lines a reader has to distinguish by eye, and so long text wraps normally instead of
        ever being clipped. */
-    .plints-grid { column-count: 2; column-gap: 1rem; }
-    .plints-grid .card { break-inside: avoid; margin-bottom: 1rem; }
+    .plints-grid { display: flex; gap: 1rem; align-items: flex-start; }
+    .plints-column { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 1rem; }
 
     .plint-toggle { cursor: pointer; user-select: none; }
     .plint-toggle .mdi { transition: transform 0.15s ease; }
@@ -55,54 +58,58 @@
   </style>
 
   <div class="plints-grid">
-    {% for plint in data.plints %}
-    <div class="card">
-      <div class="card-header d-flex align-items-center justify-content-between plint-toggle" role="button" tabindex="0" aria-expanded="true">
-        <h5 class="mb-0">{{ plint.name }}</h5>
-        <i class="mdi mdi-chevron-up"></i>
-      </div>
-      <div class="plint-body">
-        <table class="table plint-table mb-0">
-          <thead>
-            <tr>
-              <th class="col-pos"></th>
-              <th class="col-side"></th>
-              <th>{% trans "Description" %}</th>
-              <th>{% trans "Connection" %}</th>
-            </tr>
-          </thead>
-          {% for pair in plint.pairs %}
-          <tbody>
-            {% for cell in pair.cells %}
-            <tr class="{{ cell.state }}" {% if cell.state == "unbuilt" %}title="{% trans 'Not instantiated on this device' %}"{% endif %}>
-              {% if forloop.first %}<td class="col-pos fw-bold align-middle" rowspan="{{ pair.cells|length }}">{{ pair.label }}</td>{% endif %}
-              {% if cell.state == "unbuilt" %}
-              <td class="col-side text-secondary">{{ cell.side }}</td>
-              <td colspan="2" class="text-secondary">—</td>
-              {% else %}
-              {% url 'dcim:frontport_edit' pk=cell.front_port_id as edit_url %}
-              <td class="col-side">
-                <a href="{{ edit_url }}" class="side-btn" title="{% trans 'Edit this port' %}">{{ cell.side }}</a>
-              </td>
-              {% if cell.state == "connected" or cell.state == "documented_only" %}
-              <td>{{ cell.description|default:"—" }}</td>
-              <td class="col-conn">
-                {% if cell.far_device %}
-                  <a href="{{ cell.far_device_url }}">{{ cell.far_device }}</a>{% if cell.far_port %}/<a href="{{ cell.far_port_url }}">{{ cell.far_port }}</a>{% endif %}
+    {% for column in data.columns %}
+    <div class="plints-column">
+      {% for plint in column %}
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between plint-toggle" role="button" tabindex="0" aria-expanded="true">
+          <h5 class="mb-0">{{ plint.name }}</h5>
+          <i class="mdi mdi-chevron-up"></i>
+        </div>
+        <div class="plint-body">
+          <table class="table plint-table mb-0">
+            <thead>
+              <tr>
+                <th class="col-pos"></th>
+                <th class="col-side"></th>
+                <th>{% trans "Description" %}</th>
+                <th>{% trans "Connection" %}</th>
+              </tr>
+            </thead>
+            {% for pair in plint.pairs %}
+            <tbody>
+              {% for cell in pair.cells %}
+              <tr class="{{ cell.state }}" {% if cell.state == "unbuilt" %}title="{% trans 'Not instantiated on this device' %}"{% endif %}>
+                {% if forloop.first %}<td class="col-pos fw-bold align-middle" rowspan="{{ pair.cells|length }}">{{ pair.label }}</td>{% endif %}
+                {% if cell.state == "unbuilt" %}
+                <td class="col-side text-secondary">{{ cell.side }}</td>
+                <td colspan="2" class="text-secondary">—</td>
                 {% else %}
-                  —
+                {% url 'dcim:frontport_edit' pk=cell.front_port_id as edit_url %}
+                <td class="col-side">
+                  <a href="{{ edit_url }}" class="side-btn" title="{% trans 'Edit this port' %}">{{ cell.side }}</a>
+                </td>
+                {% if cell.state == "connected" or cell.state == "documented_only" %}
+                <td>{{ cell.description|default:"—" }}</td>
+                <td class="col-conn">
+                  {% if cell.far_device %}
+                    <a href="{{ cell.far_device_url }}">{{ cell.far_device }}</a>{% if cell.far_port %}/<a href="{{ cell.far_port_url }}">{{ cell.far_port }}</a>{% endif %}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                {% else %}
+                <td colspan="2" class="text-secondary fst-italic">{% trans "free" %}</td>
                 {% endif %}
-              </td>
-              {% else %}
-              <td colspan="2" class="text-secondary fst-italic">{% trans "free" %}</td>
-              {% endif %}
-              {% endif %}
-            </tr>
+                {% endif %}
+              </tr>
+              {% endfor %}
+            </tbody>
             {% endfor %}
-          </tbody>
-          {% endfor %}
-        </table>
+          </table>
+        </div>
       </div>
+      {% endfor %}
     </div>
     {% endfor %}
   </div>
