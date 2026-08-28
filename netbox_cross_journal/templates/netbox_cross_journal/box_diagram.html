@@ -23,17 +23,29 @@
       align-items: start;
     }
     .plint-table th.col-pos, .plint-table td.col-pos { width: 2.5rem; text-align: center; }
-    .plint-table th.col-side, .plint-table td.col-side { width: 2rem; text-align: center; }
-    .plint-table td.col-conn { font-family: var(--tblr-font-monospace, monospace); font-size: 0.85em; }
-    .plint-table tbody tr.clickable { cursor: pointer; }
+    .plint-table th.col-side, .plint-table td.col-side { width: 2rem; }
+    .plint-table td.col-conn a { font-family: var(--tblr-font-monospace, monospace); font-size: 0.9em; }
     .plint-table tbody tr.unbuilt td { opacity: 0.4; }
+
+    /* Every navigable cell's content is a real <a> filling the cell (not a JS onclick on
+       the <tr>) so cmd/middle-click "open in new tab" works like any other link — the row
+       just has no single pos number to click through since it repeats per row instead of
+       being rowspanned (a rowspanned cell belongs only to its first <tr>, so hovering the
+       second row of a pair left it looking half-highlighted; simplest fix is not to share
+       it). */
+    .plint-table td.linked { padding: 0; }
+    .plint-table td.linked > a {
+      display: block; width: 100%; height: 100%; padding: 0.5rem 0.75rem;
+      color: inherit; text-decoration: none;
+    }
+    .plint-table tbody tr:hover > td { background-color: var(--tblr-bg-surface-secondary); }
   </style>
 
   <div class="plints-grid">
     {% for plint in data.plints %}
     <div class="card">
       <h5 class="card-header">{{ plint.name }}</h5>
-      <table class="table table-hover plint-table mb-0">
+      <table class="table plint-table mb-0">
         <thead>
           <tr>
             <th class="col-pos"></th>
@@ -45,23 +57,26 @@
         <tbody>
           {% for pair in plint.pairs %}
             {% for cell in pair.cells %}
-            <tr
-              class="{{ cell.state }}{% if cell.state != 'unbuilt' %} clickable{% endif %}"
-              {% if cell.state != "unbuilt" %}
-              onclick="window.location='{% url 'dcim:frontport_edit' pk=cell.front_port_id %}'"
-              {% else %}
-              title="{% trans 'Not instantiated on this device' %}"
-              {% endif %}
-            >
-              {% if forloop.first %}<td class="col-pos fw-bold align-middle" rowspan="{{ pair.cells|length }}">{{ pair.label }}</td>{% endif %}
+            <tr class="{{ cell.state }}" {% if cell.state == "unbuilt" %}title="{% trans 'Not instantiated on this device' %}"{% endif %}>
+              <td class="col-pos fw-bold align-middle">{{ pair.label }}</td>
+              {% if cell.state == "unbuilt" %}
               <td class="col-side text-secondary">{{ cell.side }}</td>
-              {% if cell.state == "connected" or cell.state == "documented_only" %}
-              <td>{{ cell.description|default:"—" }}</td>
-              <td class="col-conn">{% if cell.far_device %}{{ cell.far_device }}/{{ cell.far_port }}{% else %}—{% endif %}</td>
-              {% elif cell.state == "free" %}
-              <td colspan="2" class="text-secondary fst-italic">{% trans "free" %}</td>
-              {% else %}
               <td colspan="2" class="text-secondary">—</td>
+              {% else %}
+              {% url 'dcim:frontport_edit' pk=cell.front_port_id as edit_url %}
+              <td class="col-side linked">
+                <a href="{{ edit_url }}" class="text-secondary">{{ cell.side }}</a>
+              </td>
+              {% if cell.state == "connected" or cell.state == "documented_only" %}
+              <td class="linked"><a href="{{ edit_url }}">{{ cell.description|default:"—" }}</a></td>
+              <td class="col-conn linked">
+                <a href="{{ edit_url }}">{% if cell.far_device %}{{ cell.far_device }}/{{ cell.far_port }}{% else %}—{% endif %}</a>
+              </td>
+              {% else %}
+              <td colspan="2" class="linked">
+                <a href="{{ edit_url }}" class="text-secondary fst-italic">{% trans "free" %}</a>
+              </td>
+              {% endif %}
               {% endif %}
             </tr>
             {% endfor %}
