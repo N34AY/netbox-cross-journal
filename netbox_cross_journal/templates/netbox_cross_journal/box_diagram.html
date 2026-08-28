@@ -23,22 +23,29 @@
       align-items: start;
     }
     .plint-table th.col-pos, .plint-table td.col-pos { width: 2.5rem; text-align: center; }
-    .plint-table th.col-side, .plint-table td.col-side { width: 2rem; }
+    .plint-table th.col-side, .plint-table td.col-side { width: 2.75rem; text-align: center; }
     .plint-table td.col-conn a { font-family: var(--tblr-font-monospace, monospace); font-size: 0.9em; }
     .plint-table tbody tr.unbuilt td { opacity: 0.4; }
 
-    /* Every navigable cell's content is a real <a> filling the cell (not a JS onclick on
-       the <tr>) so cmd/middle-click "open in new tab" works like any other link. Each pair
-       (its 1 or 2 rows) gets its own <tbody> so the pair number can stay rowspanned across
-       both — a rowspanned cell belongs only to its first <tr>, so a plain "tr:hover" rule
-       leaves it unhighlighted when hovering the second row; hovering the whole <tbody>
-       instead reaches every cell inside it, rowspanned or not. */
-    .plint-table td.linked { padding: 0; }
-    .plint-table td.linked > a {
-      display: block; width: 100%; height: 100%; padding: 0.5rem 0.75rem;
-      color: inherit; text-decoration: none;
-    }
+    /* Each pair (its 1 or 2 rows) gets its own <tbody> so the pair number can stay
+       rowspanned across both — a rowspanned cell belongs only to its first <tr>, so a plain
+       "tr:hover" rule leaves it unhighlighted when hovering the second row; hovering the
+       whole <tbody> instead reaches every cell inside it, rowspanned or not. */
     .plint-table tbody:hover td { background-color: var(--tblr-table-hover-bg); }
+
+    /* Everything else in a row is now plain text — only the A/B side button navigates to
+       the local port, and the far device/port (when present) are their own independent
+       links, so cmd/middle-click "open in new tab" targets exactly what it looks like it
+       targets instead of the whole row jumping to the local port's edit page. */
+    .plint-table a.side-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 1.75rem; height: 1.75rem; border-radius: 0.25rem;
+      border: 1px solid var(--tblr-border-color); color: inherit; text-decoration: none;
+      font-weight: 600; font-size: 0.85em;
+    }
+    .plint-table a.side-btn:hover {
+      background-color: var(--tblr-table-hover-bg); border-color: var(--tblr-secondary);
+    }
   </style>
 
   <div class="plints-grid">
@@ -64,18 +71,20 @@
             <td colspan="2" class="text-secondary">—</td>
             {% else %}
             {% url 'dcim:frontport_edit' pk=cell.front_port_id as edit_url %}
-            <td class="col-side linked">
-              <a href="{{ edit_url }}" class="text-secondary">{{ cell.side }}</a>
+            <td class="col-side">
+              <a href="{{ edit_url }}" class="side-btn" title="{% trans 'Edit this port' %}">{{ cell.side }}</a>
             </td>
             {% if cell.state == "connected" or cell.state == "documented_only" %}
-            <td class="linked"><a href="{{ edit_url }}">{{ cell.description|default:"—" }}</a></td>
-            <td class="col-conn linked">
-              <a href="{{ edit_url }}">{% if cell.far_device %}{{ cell.far_device }}/{{ cell.far_port }}{% else %}—{% endif %}</a>
+            <td>{{ cell.description|default:"—" }}</td>
+            <td class="col-conn">
+              {% if cell.far_device %}
+                <a href="{{ cell.far_device_url }}">{{ cell.far_device }}</a>{% if cell.far_port %}/<a href="{{ cell.far_port_url }}">{{ cell.far_port }}</a>{% endif %}
+              {% else %}
+                —
+              {% endif %}
             </td>
             {% else %}
-            <td colspan="2" class="linked">
-              <a href="{{ edit_url }}" class="text-secondary fst-italic">{% trans "free" %}</a>
-            </td>
+            <td colspan="2" class="text-secondary fst-italic">{% trans "free" %}</td>
             {% endif %}
             {% endif %}
           </tr>

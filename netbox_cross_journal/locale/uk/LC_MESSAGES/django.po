@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: netbox-cross-journal\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-28 18:09+0000\n"
+"POT-Creation-Date: 2026-08-28 18:32+0000\n"
 "PO-Revision-Date: 2026-08-15 23:10+0000\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -239,8 +239,7 @@ msgid ""
 msgstr ""
 "Типи пристроїв (наприклад, розподільча коробка), які схема плінта має "
 "пропускати, а не вважати кінцевим призначенням — трасування триває через "
-"будь-яку їх кількість підряд, поки не дійде до реального кінцевого "
-"пристрою."
+"будь-яку їх кількість підряд, поки не дійде до реального кінцевого пристрою."
 
 #: models.py:72 models.py:73
 msgid "settings"
@@ -266,26 +265,25 @@ msgstr "Схема плінта"
 msgid "Back to device"
 msgstr "До пристрою"
 
-#: templates/netbox_cross_journal/box_diagram.html:53
+#: templates/netbox_cross_journal/box_diagram.html:60
 #: templates/netbox_cross_journal/box_diagram_print.html:87
 msgid "Description"
 msgstr "Опис"
 
-#: templates/netbox_cross_journal/box_diagram.html:54
+#: templates/netbox_cross_journal/box_diagram.html:61
 #: templates/netbox_cross_journal/box_diagram_print.html:88
 msgid "Connection"
 msgstr "З'єднання"
 
-#: templates/netbox_cross_journal/box_diagram.html:60
+#: templates/netbox_cross_journal/box_diagram.html:67
 msgid "Not instantiated on this device"
 msgstr "Не створено на цьому пристрої"
 
-#: templates/netbox_cross_journal/box_diagram.html:73
-#: templates/netbox_cross_journal/box_diagram_print.html:99
-msgid "via"
-msgstr "через"
+#: templates/netbox_cross_journal/box_diagram.html:75
+msgid "Edit this port"
+msgstr "Редагувати цей порт"
 
-#: templates/netbox_cross_journal/box_diagram.html:77
+#: templates/netbox_cross_journal/box_diagram.html:87
 #: templates/netbox_cross_journal/box_diagram_print.html:101
 msgid "free"
 msgstr "вільна"
@@ -368,6 +366,9 @@ msgstr "Кабель живлення"
 #: views.py:109
 msgid "Cross Journal settings saved."
 msgstr "Налаштування крос-журналу збережено."
+
+#~ msgid "via"
+#~ msgstr "через"
 
 #~ msgid "Free pair"
 #~ msgstr "Вільна пара"

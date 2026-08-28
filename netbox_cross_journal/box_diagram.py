@@ -60,7 +60,9 @@ class PositionCell:
     description: str = ""
     cable_label: str = ""
     far_device: str = ""
+    far_device_url: str = ""
     far_port: str = ""
+    far_port_url: str = ""
     via: list[str] = field(default_factory=list)  # passthrough devices the chain crossed
     side: str = ""  # "A" | "B" | "" (no A/B split on this pair)
 
@@ -91,30 +93,32 @@ def _resolve_endpoint(
     passthrough_type_ids: set[int],
     _via: list[str] | None = None,
     _visited: set[int] | None = None,
-) -> tuple[str, str, list[str]]:
-    """Returns (far_device_name, far_port_name, via) for whatever is ultimately on the other
-    end of front_port's cable — transparently crossing any number of chained passthrough
-    devices (device type id in passthrough_type_ids) instead of stopping at the first one.
-    via lists the passthrough devices' names, in the order the chain crossed them.
-    ("", "", via) if nothing resolves; stops (without raising) at whatever it last reached if
-    a passthrough box's onward leg hasn't been documented yet, or if the chain cycles back on
-    itself."""
+) -> tuple[str, str, str, str, list[str]]:
+    """Returns (far_device_name, far_device_url, far_port_name, far_port_url) for whatever is
+    ultimately on the other end of front_port's cable — transparently crossing any number of
+    chained passthrough devices (device type id in passthrough_type_ids) instead of stopping
+    at the first one — plus via, the passthrough devices' names in the order the chain crossed
+    them. The device and port are returned as separate name/url pairs (rather than one
+    combined link) so the UI can make each independently clickable — see box_diagram.html.
+    ("", "", "", "", via) if nothing resolves; stops (without raising) at whatever it last
+    reached if a passthrough box's onward leg hasn't been documented yet, or if the chain
+    cycles back on itself."""
     via = _via if _via is not None else []
     visited = _visited if _visited is not None else set()
     if front_port.pk in visited:
-        return "", "", via
+        return "", "", "", "", via
     visited.add(front_port.pk)
 
     peers = front_port.link_peers
     if not peers:
-        return "", "", via
+        return "", "", "", "", via
     peer = peers[0]
     peer_device = getattr(peer, "device", None)
     if peer_device is None:
-        return "", peer.name, via
+        return "", "", peer.name, peer.get_absolute_url(), via
 
     if peer_device.device_type_id not in passthrough_type_ids:
-        return peer_device.name, peer.name, via
+        return peer_device.name, peer_device.get_absolute_url(), peer.name, peer.get_absolute_url(), via
 
     next_front_port = FrontPort.objects.filter(
         device=peer_device, custom_field_data__upstream_port=front_port.pk
@@ -122,7 +126,7 @@ def _resolve_endpoint(
     if next_front_port is None:
         # Documented as a passthrough box, but nobody's recorded which of its outputs
         # continues this particular pair yet — surface the box itself rather than nothing.
-        return peer_device.name, peer.name, via
+        return peer_device.name, peer_device.get_absolute_url(), peer.name, peer.get_absolute_url(), via
 
     return _resolve_endpoint(next_front_port, passthrough_type_ids, via + [peer_device.name], visited)
 
@@ -191,12 +195,15 @@ def gather_box_diagram(device: Device) -> BoxDiagramData:
             description = (fp.description or "").strip()
             if fp.cable_id:
                 cable = Cable.objects.get(pk=fp.cable_id)
-                far_device, far_port, via = _resolve_endpoint(fp, passthrough_type_ids)
+                far_device, far_device_url, far_port, far_port_url, via = _resolve_endpoint(
+                    fp, passthrough_type_ids
+                )
                 flat_cells.append(PositionCell(
                     position=position, state="connected",
                     front_port_id=fp.pk, front_port_name=fp.name,
                     description=description, cable_label=cable.label or f"#{cable.pk}",
-                    far_device=far_device, far_port=far_port, via=via,
+                    far_device=far_device, far_device_url=far_device_url,
+                    far_port=far_port, far_port_url=far_port_url, via=via,
                 ))
             elif description:
                 flat_cells.append(PositionCell(
