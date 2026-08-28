@@ -13,15 +13,21 @@
 
 {% block content %}
   <style>
-    /* One card per plint, laid out in as many columns as fit — same idea as the print
-       page's "two per row", just adaptive instead of a fixed page width. Real <table>
-       markup (not custom flexboxed cards) so "Опис" vs "Підключення" is an explicit,
-       always-visible column header rather than two stacked lines a reader has to
-       distinguish by eye, and so long text wraps normally instead of ever being clipped. */
-    .plints-grid {
-      display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;
-      align-items: start;
-    }
+    /* One card per plint, two per row. CSS multi-column (not grid) on purpose: collapsing a
+       card shrinks it in place and lets whatever comes after it in the *same column* slide
+       up to fill the gap, the way the user asked for ("collapse plint 1, plint 3 moves up
+       under it") — a fixed grid's rows stay locked to their tallest member and wouldn't
+       reflow like that. Real <table> markup (not custom flexboxed cards) so "Опис" vs
+       "Підключення" is an explicit, always-visible column header rather than two stacked
+       lines a reader has to distinguish by eye, and so long text wraps normally instead of
+       ever being clipped. */
+    .plints-grid { column-count: 2; column-gap: 1rem; }
+    .plints-grid .card { break-inside: avoid; margin-bottom: 1rem; }
+
+    .plint-toggle { cursor: pointer; user-select: none; }
+    .plint-toggle .mdi { transition: transform 0.15s ease; }
+    .card.collapsed .plint-toggle .mdi { transform: rotate(180deg); }
+    .card.collapsed .plint-body { display: none; }
     .plint-table th.col-pos, .plint-table td.col-pos { width: 2.5rem; text-align: center; }
     .plint-table th.col-side, .plint-table td.col-side { width: 2.75rem; text-align: center; }
     .plint-table td.col-conn a { font-family: var(--tblr-font-monospace, monospace); font-size: 0.9em; }
@@ -51,48 +57,70 @@
   <div class="plints-grid">
     {% for plint in data.plints %}
     <div class="card">
-      <h5 class="card-header">{{ plint.name }}</h5>
-      <table class="table plint-table mb-0">
-        <thead>
-          <tr>
-            <th class="col-pos"></th>
-            <th class="col-side"></th>
-            <th>{% trans "Description" %}</th>
-            <th>{% trans "Connection" %}</th>
-          </tr>
-        </thead>
-        {% for pair in plint.pairs %}
-        <tbody>
-          {% for cell in pair.cells %}
-          <tr class="{{ cell.state }}" {% if cell.state == "unbuilt" %}title="{% trans 'Not instantiated on this device' %}"{% endif %}>
-            {% if forloop.first %}<td class="col-pos fw-bold align-middle" rowspan="{{ pair.cells|length }}">{{ pair.label }}</td>{% endif %}
-            {% if cell.state == "unbuilt" %}
-            <td class="col-side text-secondary">{{ cell.side }}</td>
-            <td colspan="2" class="text-secondary">—</td>
-            {% else %}
-            {% url 'dcim:frontport_edit' pk=cell.front_port_id as edit_url %}
-            <td class="col-side">
-              <a href="{{ edit_url }}" class="side-btn" title="{% trans 'Edit this port' %}">{{ cell.side }}</a>
-            </td>
-            {% if cell.state == "connected" or cell.state == "documented_only" %}
-            <td>{{ cell.description|default:"—" }}</td>
-            <td class="col-conn">
-              {% if cell.far_device %}
-                <a href="{{ cell.far_device_url }}">{{ cell.far_device }}</a>{% if cell.far_port %}/<a href="{{ cell.far_port_url }}">{{ cell.far_port }}</a>{% endif %}
+      <div class="card-header d-flex align-items-center justify-content-between plint-toggle" role="button" tabindex="0" aria-expanded="true">
+        <h5 class="mb-0">{{ plint.name }}</h5>
+        <i class="mdi mdi-chevron-up"></i>
+      </div>
+      <div class="plint-body">
+        <table class="table plint-table mb-0">
+          <thead>
+            <tr>
+              <th class="col-pos"></th>
+              <th class="col-side"></th>
+              <th>{% trans "Description" %}</th>
+              <th>{% trans "Connection" %}</th>
+            </tr>
+          </thead>
+          {% for pair in plint.pairs %}
+          <tbody>
+            {% for cell in pair.cells %}
+            <tr class="{{ cell.state }}" {% if cell.state == "unbuilt" %}title="{% trans 'Not instantiated on this device' %}"{% endif %}>
+              {% if forloop.first %}<td class="col-pos fw-bold align-middle" rowspan="{{ pair.cells|length }}">{{ pair.label }}</td>{% endif %}
+              {% if cell.state == "unbuilt" %}
+              <td class="col-side text-secondary">{{ cell.side }}</td>
+              <td colspan="2" class="text-secondary">—</td>
               {% else %}
-                —
+              {% url 'dcim:frontport_edit' pk=cell.front_port_id as edit_url %}
+              <td class="col-side">
+                <a href="{{ edit_url }}" class="side-btn" title="{% trans 'Edit this port' %}">{{ cell.side }}</a>
+              </td>
+              {% if cell.state == "connected" or cell.state == "documented_only" %}
+              <td>{{ cell.description|default:"—" }}</td>
+              <td class="col-conn">
+                {% if cell.far_device %}
+                  <a href="{{ cell.far_device_url }}">{{ cell.far_device }}</a>{% if cell.far_port %}/<a href="{{ cell.far_port_url }}">{{ cell.far_port }}</a>{% endif %}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              {% else %}
+              <td colspan="2" class="text-secondary fst-italic">{% trans "free" %}</td>
               {% endif %}
-            </td>
-            {% else %}
-            <td colspan="2" class="text-secondary fst-italic">{% trans "free" %}</td>
-            {% endif %}
-            {% endif %}
-          </tr>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
           {% endfor %}
-        </tbody>
-        {% endfor %}
-      </table>
+        </table>
+      </div>
     </div>
     {% endfor %}
   </div>
+
+  <script>
+    document.querySelectorAll('.plint-toggle').forEach(function (toggle) {
+      function toggleCollapse() {
+        var card = toggle.closest('.card');
+        var collapsed = card.classList.toggle('collapsed');
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+      }
+      toggle.addEventListener('click', toggleCollapse);
+      toggle.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggleCollapse();
+        }
+      });
+    });
+  </script>
 {% endblock %}
