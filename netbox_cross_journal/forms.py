@@ -27,7 +27,7 @@ class CrossJournalSettingsForm(forms.ModelForm):
             "box) instead of stopping at them — the chain is followed however many are in a "
             "row until a real endpoint is reached."
         ),
-        widget=forms.SelectMultiple(attrs={"class": "form-select", "size": 8}),
+        widget=forms.SelectMultiple(attrs={"class": "form-select"}),
     )
 
     class Meta:
