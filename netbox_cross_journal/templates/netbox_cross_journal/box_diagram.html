@@ -70,7 +70,7 @@
             {% if cell.state == "connected" or cell.state == "documented_only" %}
             <td class="linked"><a href="{{ edit_url }}">{{ cell.description|default:"—" }}</a></td>
             <td class="col-conn linked">
-              <a href="{{ edit_url }}">{% if cell.far_device %}{{ cell.far_device }}/{{ cell.far_port }}{% else %}—{% endif %}</a>
+              <a href="{{ edit_url }}">{% if cell.far_device %}{{ cell.far_device }}/{{ cell.far_port }}{% if cell.via %} <span class="text-secondary">({% trans "via" %} {{ cell.via|join:", " }})</span>{% endif %}{% else %}—{% endif %}</a>
             </td>
             {% else %}
             <td colspan="2" class="linked">

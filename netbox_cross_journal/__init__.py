@@ -8,7 +8,7 @@ class CrossJournalConfig(PluginConfig):
         "Generates a printable/Excel cross-connect journal (device inventory, data "
         "cabling, power cabling) scoped to a Rack, Location, or Site."
     )
-    version = "0.8.1"
+    version = "0.9.0"
     base_url = "cross-journal"
 
     template_extensions = "template_content.template_extensions"

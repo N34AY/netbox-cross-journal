@@ -20,6 +20,18 @@ display — it does not assume anything about RearPort.positions layout (e.g. th
 lives at position+N), so it works regardless of which position numbering a given box happens
 to use, and boxes with only one side per pair (no "/ A" or "/ B" suffix at all) render
 exactly as before.
+
+A pair's own cable sometimes doesn't run straight to the final device — it lands on a
+splice/distribution box first (see the "Розподільча коробка" device type), which fans a
+multi-conductor cable's individual pairs out to separate final-leg cables. Those boxes are
+configured (Settings → "passthrough device types") to be seen through: _resolve_endpoint()
+keeps following the chain, however many such boxes are strung together, until it reaches a
+device that isn't one of them. NetBox's own cable tracing can't do this alone — once a cable
+has more than one termination on a side (exactly what a multi-pair trunk needs), it has no
+way to say which specific pair continues through which specific output on the far box, so
+each passthrough box's outgoing FrontPort instead carries an explicit "upstream_port" custom
+field pointing back at the FrontPort the signal arrived from; that's the link this module
+follows one hop at a time.
 """
 from __future__ import annotations
 
@@ -49,6 +61,7 @@ class PositionCell:
     cable_label: str = ""
     far_device: str = ""
     far_port: str = ""
+    via: list[str] = field(default_factory=list)  # passthrough devices the chain crossed
     side: str = ""  # "A" | "B" | "" (no A/B split on this pair)
 
 
@@ -73,17 +86,45 @@ class BoxDiagramData:
     plints: list[PlintRow]
 
 
-def _far_end(front_port: FrontPort) -> tuple[str, str]:
-    """Returns (far_device_name, far_port_name) for whatever is on the other end of
-    front_port's cable, or ("", "") if nothing resolves."""
+def _resolve_endpoint(
+    front_port: FrontPort,
+    passthrough_type_ids: set[int],
+    _via: list[str] | None = None,
+    _visited: set[int] | None = None,
+) -> tuple[str, str, list[str]]:
+    """Returns (far_device_name, far_port_name, via) for whatever is ultimately on the other
+    end of front_port's cable — transparently crossing any number of chained passthrough
+    devices (device type id in passthrough_type_ids) instead of stopping at the first one.
+    via lists the passthrough devices' names, in the order the chain crossed them.
+    ("", "", via) if nothing resolves; stops (without raising) at whatever it last reached if
+    a passthrough box's onward leg hasn't been documented yet, or if the chain cycles back on
+    itself."""
+    via = _via if _via is not None else []
+    visited = _visited if _visited is not None else set()
+    if front_port.pk in visited:
+        return "", "", via
+    visited.add(front_port.pk)
+
     peers = front_port.link_peers
     if not peers:
-        return "", ""
+        return "", "", via
     peer = peers[0]
     peer_device = getattr(peer, "device", None)
     if peer_device is None:
-        return "", peer.name
-    return peer_device.name, peer.name
+        return "", peer.name, via
+
+    if peer_device.device_type_id not in passthrough_type_ids:
+        return peer_device.name, peer.name, via
+
+    next_front_port = FrontPort.objects.filter(
+        device=peer_device, custom_field_data__upstream_port=front_port.pk
+    ).first()
+    if next_front_port is None:
+        # Documented as a passthrough box, but nobody's recorded which of its outputs
+        # continues this particular pair yet — surface the box itself rather than nothing.
+        return peer_device.name, peer.name, via
+
+    return _resolve_endpoint(next_front_port, passthrough_type_ids, via + [peer_device.name], visited)
 
 
 def _group_by_pair(flat_cells: list[PositionCell]) -> list[PairGroup]:
@@ -119,6 +160,12 @@ def _group_by_pair(flat_cells: list[PositionCell]) -> list[PairGroup]:
 
 
 def gather_box_diagram(device: Device) -> BoxDiagramData:
+    from .models import CrossJournalSettings
+
+    passthrough_type_ids = set(
+        CrossJournalSettings.load().passthrough_device_types.values_list("id", flat=True)
+    )
+
     rear_ports = list(RearPort.objects.filter(device=device))
     rear_ports.sort(key=lambda rp: _natural_key(rp.name))
 
@@ -144,12 +191,12 @@ def gather_box_diagram(device: Device) -> BoxDiagramData:
             description = (fp.description or "").strip()
             if fp.cable_id:
                 cable = Cable.objects.get(pk=fp.cable_id)
-                far_device, far_port = _far_end(fp)
+                far_device, far_port, via = _resolve_endpoint(fp, passthrough_type_ids)
                 flat_cells.append(PositionCell(
                     position=position, state="connected",
                     front_port_id=fp.pk, front_port_name=fp.name,
                     description=description, cable_label=cable.label or f"#{cable.pk}",
-                    far_device=far_device, far_port=far_port,
+                    far_device=far_device, far_port=far_port, via=via,
                 ))
             elif description:
                 flat_cells.append(PositionCell(

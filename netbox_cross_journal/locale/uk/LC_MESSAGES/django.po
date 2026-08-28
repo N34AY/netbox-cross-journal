@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: netbox-cross-journal\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-15 23:10+0000\n"
+"POT-Creation-Date: 2026-08-28 18:09+0000\n"
 "PO-Revision-Date: 2026-08-15 23:10+0000\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -16,144 +16,213 @@ msgstr ""
 "100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || "
 "(n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
 
+#: excel.py:41
 msgid "Cover"
 msgstr "Обкладинка"
 
+#: excel.py:42 excel.py:107 navigation.py:14 navigation.py:15
+#: templates/netbox_cross_journal/inc/device_panel.html:4
+#: templates/netbox_cross_journal/inc/panel.html:4
+#: templates/netbox_cross_journal/report.html:6
+#: templates/netbox_cross_journal/report.html:30
 msgid "Cross Journal"
 msgstr "Крос-журнал"
 
+#: excel.py:47 excel.py:56
 msgid "Site:"
 msgstr "Сайт:"
 
+#: excel.py:52 excel.py:56
 msgid "Location:"
 msgstr "Локація:"
 
+#: excel.py:56
 msgid "Rack:"
 msgstr "Шафа:"
 
+#: excel.py:60
 msgid "Generated from NetBox by the Cross Journal plugin."
 msgstr "Згенеровано з NetBox плагіном Cross Journal."
 
+#: excel.py:67 templates/netbox_cross_journal/report.html:37
 msgid "Devices"
 msgstr "Пристрої"
 
+#: excel.py:68 excel.py:110 templates/netbox_cross_journal/report.html:41
 msgid "Name"
 msgstr "Назва"
 
+#: excel.py:68 excel.py:110 templates/netbox_cross_journal/report.html:42
 msgid "Device type"
 msgstr "Тип пристрою"
 
+#: excel.py:68 excel.py:110 templates/netbox_cross_journal/report.html:43
 msgid "Role"
 msgstr "Роль"
 
+#: excel.py:68 excel.py:110 templates/netbox_cross_journal/report.html:44
 msgid "Serial number"
 msgstr "Серійний номер"
 
+#: excel.py:68 excel.py:110 templates/netbox_cross_journal/report.html:45
 msgid "Status"
 msgstr "Статус"
 
+#: excel.py:69 excel.py:111 templates/netbox_cross_journal/report.html:33
+#: templates/netbox_cross_journal/report.html:34
+#: templates/netbox_cross_journal/report.html:46
+#: templates/netbox_cross_journal/topology.html:38
+#: templates/netbox_cross_journal/topology.html:39
 msgid "Location"
 msgstr "Розташування"
 
+#: excel.py:69 excel.py:111 templates/netbox_cross_journal/report.html:47
 msgid "IP"
 msgstr "IP"
 
+#: excel.py:69 excel.py:111 templates/netbox_cross_journal/report.html:48
 msgid "Tags"
 msgstr "Теги"
 
+#: excel.py:69 excel.py:111
 msgid "Comments"
 msgstr "Коментарі"
 
+#: excel.py:81
 msgid "Data"
 msgstr "Дані"
 
+#: excel.py:82 excel.py:123 templates/netbox_cross_journal/report.html:72
 msgid "Cable"
 msgstr "Кабель"
 
+#: excel.py:82 excel.py:123
 msgid "Cable type"
 msgstr "Тип кабелю"
 
+#: excel.py:82 excel.py:123 templates/netbox_cross_journal/report.html:74
 msgid "Device A"
 msgstr "Пристрій A"
 
+#: excel.py:82 excel.py:123 templates/netbox_cross_journal/report.html:75
 msgid "Port A"
 msgstr "Порт A"
 
+#: excel.py:83 excel.py:124 templates/netbox_cross_journal/report.html:76
 msgid "Device B"
 msgstr "Пристрій B"
 
+#: excel.py:83 excel.py:124 templates/netbox_cross_journal/report.html:77
 msgid "Port B"
 msgstr "Порт B"
 
+#: excel.py:83 excel.py:124 templates/netbox_cross_journal/report.html:78
 msgid "Comment"
 msgstr "Коментар"
 
+#: excel.py:83 excel.py:124 templates/netbox_cross_journal/report.html:79
 msgid "Port comment"
 msgstr "Коментар порту"
 
+#: excel.py:95 templates/netbox_cross_journal/report.html:100
 msgid "Power"
 msgstr "Живлення"
 
+#: excel.py:96 excel.py:135 templates/netbox_cross_journal/report.html:104
 msgid "Device"
 msgstr "Пристрій"
 
+#: excel.py:96 excel.py:135 templates/netbox_cross_journal/report.html:105
 msgid "Power port"
 msgstr "Порт живлення"
 
+#: excel.py:96 excel.py:135 templates/netbox_cross_journal/report.html:106
 msgid "PDU"
 msgstr "PDU"
 
+#: excel.py:96 excel.py:135 templates/netbox_cross_journal/report.html:107
 msgid "Outlet"
 msgstr "Розетка"
 
+#: excel.py:108
 msgid "DEVICES"
 msgstr "ПРИСТРОЇ"
 
+#: excel.py:121
 msgid "DATA"
 msgstr "ДАНІ"
 
+#: excel.py:133
 msgid "POWER"
 msgstr "ЖИВЛЕННЯ"
 
+#: forms.py:16 models.py:55
 msgid "excluded device statuses"
 msgstr "виключені статуси пристроїв"
 
+#: forms.py:24 models.py:62
+msgid "passthrough device types"
+msgstr "прохідні типи пристроїв"
+
+#: forms.py:26
+msgid ""
+"Box diagrams see through devices of these types (e.g. a splice/distribution "
+"box) instead of stopping at them — the chain is followed however many are in "
+"a row until a real endpoint is reached."
+msgstr ""
+"На схемах плінтів пристрої цих типів (наприклад, розподільча коробка) "
+"пропускаються — трасування триває через будь-яку їх кількість підряд, поки "
+"не дійде до реального кінцевого пристрою."
+
+#: models.py:7
 msgid "Separate sheets (Devices / Data / Power)"
 msgstr "Окремі аркуші (Пристрої / Дані / Живлення)"
 
+#: models.py:8
 msgid "Single sheet (everything combined)"
 msgstr "Один аркуш (усе разом)"
 
+#: models.py:18
 msgid "company name"
 msgstr "назва організації"
 
+#: models.py:19
 msgid "Shown in the report header (optional)."
 msgstr "Показується у заголовку звіту (необов'язково)."
 
+#: models.py:23
 msgid "include data cables"
 msgstr "включати кабелі даних"
 
+#: models.py:27
 msgid "include power cables"
 msgstr "включати кабелі живлення"
 
+#: models.py:31
 msgid "include tags"
 msgstr "включати теги"
 
+#: models.py:35
 msgid "include IP addresses"
 msgstr "включати IP-адреси"
 
+#: models.py:39
 msgid "include serial numbers"
 msgstr "включати серійні номери"
 
+#: models.py:43
 msgid "include comments"
 msgstr "включати коментарі"
 
+#: models.py:44
 msgid "Device comments can be long or contain internal notes."
 msgstr "Коментарі пристроїв можуть бути довгими або містити внутрішні нотатки."
 
+#: models.py:50
 msgid "Excel file layout"
 msgstr "розкладка Excel-файлу"
 
+#: models.py:56
 msgid ""
 "Devices with these statuses are left out of the report (e.g. "
 "“decommissioning”)."
@@ -161,90 +230,147 @@ msgstr ""
 "Пристрої з цими статусами не потрапляють у звіт (наприклад, «виведені з "
 "експлуатації»)."
 
+#: models.py:64
+msgid ""
+"Device types (e.g. a splice/distribution box) that a box diagram should see "
+"through rather than treat as the final destination — the diagram keeps "
+"following the cable chain past any of these until it reaches a real "
+"endpoint, however many of them are chained in a row."
+msgstr ""
+"Типи пристроїв (наприклад, розподільча коробка), які схема плінта має "
+"пропускати, а не вважати кінцевим призначенням — трасування триває через "
+"будь-яку їх кількість підряд, поки не дійде до реального кінцевого "
+"пристрою."
+
+#: models.py:72 models.py:73
 msgid "settings"
 msgstr "налаштування"
 
+#: models.py:76 templates/netbox_cross_journal/settings.html:4
+#: templates/netbox_cross_journal/settings.html:8
 msgid "Cross Journal Settings"
 msgstr "Налаштування крос-журналу"
 
+#: navigation.py:8
 msgid "Settings"
 msgstr "Налаштування"
 
-msgid "Preview"
-msgstr "Переглянути"
+#: templates/netbox_cross_journal/box_diagram.html:4
+#: templates/netbox_cross_journal/box_diagram_print.html:6
+#: templates/netbox_cross_journal/box_diagram_print.html:75
+#: templates/netbox_cross_journal/inc/device_panel.html:11
+msgid "Box diagram"
+msgstr "Схема плінта"
 
-msgid "Download Excel"
-msgstr "Завантажити Excel"
+#: templates/netbox_cross_journal/box_diagram.html:10
+msgid "Back to device"
+msgstr "До пристрою"
 
+#: templates/netbox_cross_journal/box_diagram.html:53
+#: templates/netbox_cross_journal/box_diagram_print.html:87
+msgid "Description"
+msgstr "Опис"
+
+#: templates/netbox_cross_journal/box_diagram.html:54
+#: templates/netbox_cross_journal/box_diagram_print.html:88
+msgid "Connection"
+msgstr "З'єднання"
+
+#: templates/netbox_cross_journal/box_diagram.html:60
+msgid "Not instantiated on this device"
+msgstr "Не створено на цьому пристрої"
+
+#: templates/netbox_cross_journal/box_diagram.html:73
+#: templates/netbox_cross_journal/box_diagram_print.html:99
+msgid "via"
+msgstr "через"
+
+#: templates/netbox_cross_journal/box_diagram.html:77
+#: templates/netbox_cross_journal/box_diagram_print.html:101
+msgid "free"
+msgstr "вільна"
+
+#: templates/netbox_cross_journal/box_diagram_print.html:72
+#: templates/netbox_cross_journal/report.html:27
+#: templates/netbox_cross_journal/topology.html:32
 msgid "Print"
 msgstr "Друк"
 
+#: templates/netbox_cross_journal/inc/device_panel.html:18
+msgid "Box diagram (print)"
+msgstr "Схема плінта (друк)"
+
+#: templates/netbox_cross_journal/inc/panel.html:12
+msgid "Preview"
+msgstr "Переглянути"
+
+#: templates/netbox_cross_journal/inc/panel.html:18
+msgid "Download Excel"
+msgstr "Завантажити Excel"
+
+#: templates/netbox_cross_journal/inc/panel.html:25
+msgid "Topology diagram"
+msgstr "Схема топології"
+
+#: templates/netbox_cross_journal/report.html:32
+#: templates/netbox_cross_journal/report.html:34
+#: templates/netbox_cross_journal/topology.html:37
+#: templates/netbox_cross_journal/topology.html:39
 msgid "Site"
 msgstr "Сайт"
 
+#: templates/netbox_cross_journal/report.html:34
+#: templates/netbox_cross_journal/topology.html:39
 msgid "Rack"
 msgstr "Шафа"
 
+#: templates/netbox_cross_journal/report.html:68
 msgid "Data (cross-connects)"
 msgstr "Дані (крос-з'єднання)"
 
+#: templates/netbox_cross_journal/report.html:73
 msgid "Type"
 msgstr "Тип"
 
+#: templates/netbox_cross_journal/settings.html:10
 msgid ""
-"Live, admin-editable report generation settings. Changes apply immediately "
-"— no restart needed."
+"Live, admin-editable report generation settings. Changes apply immediately — "
+"no restart needed."
 msgstr ""
 "Живі, редаговані з інтерфейсу налаштування генерації крос-журналу. Зміни "
 "діють одразу — перезапуск не потрібен."
 
+#: templates/netbox_cross_journal/settings.html:37
 msgid "Save"
 msgstr "Зберегти"
 
-msgid "Cross Journal settings saved."
-msgstr "Налаштування крос-журналу збережено."
-
+#: templates/netbox_cross_journal/topology.html:6
+#: templates/netbox_cross_journal/topology.html:35
 msgid "Topology"
 msgstr "Схема топології"
 
-msgid "Topology diagram"
-msgstr "Схема топології"
-
+#: templates/netbox_cross_journal/topology.html:43
 msgid "Device in scope"
 msgstr "Пристрій у межах вибраного об'єкта"
 
+#: templates/netbox_cross_journal/topology.html:44
 msgid "Device outside scope"
 msgstr "Пристрій поза межами вибраного об'єкта"
 
+#: templates/netbox_cross_journal/topology.html:45
 msgid "Data cable"
 msgstr "Кабель даних"
 
+#: templates/netbox_cross_journal/topology.html:46
 msgid "Power cable"
 msgstr "Кабель живлення"
 
-msgid "Box diagram"
-msgstr "Схема плінта"
+#: views.py:109
+msgid "Cross Journal settings saved."
+msgstr "Налаштування крос-журналу збережено."
 
-msgid "Box diagram (print)"
-msgstr "Схема плінта (друк)"
+#~ msgid "Free pair"
+#~ msgstr "Вільна пара"
 
-msgid "Not instantiated on this device"
-msgstr "Не створено на цьому пристрої"
-
-msgid "Free pair"
-msgstr "Вільна пара"
-
-msgid "Documented, no cable yet"
-msgstr "Задокументовано, кабель ще не додано"
-
-msgid "free"
-msgstr "вільна"
-
-msgid "Description"
-msgstr "Опис"
-
-msgid "Connection"
-msgstr "З'єднання"
-
-msgid "Back to device"
-msgstr "До пристрою"
+#~ msgid "Documented, no cable yet"
+#~ msgstr "Задокументовано, кабель ще не додано"

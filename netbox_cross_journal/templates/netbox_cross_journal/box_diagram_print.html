@@ -96,7 +96,7 @@
               <td class="side">{{ cell.side }}</td>
               {% if cell.state == "connected" or cell.state == "documented_only" %}
               <td class="opis">{{ cell.description }}</td>
-              <td class="conn">{% if cell.far_device %}{{ cell.far_device }}/{{ cell.far_port }}{% endif %}</td>
+              <td class="conn">{% if cell.far_device %}{{ cell.far_device }}/{{ cell.far_port }}{% if cell.via %} ({% trans "via" %} {{ cell.via|join:", " }}){% endif %}{% endif %}</td>
               {% elif cell.state == "free" %}
               <td class="opis muted" colspan="2">{% trans "free" %}</td>
               {% else %}

@@ -55,6 +55,18 @@ class CrossJournalSettings(models.Model):
         verbose_name=_("excluded device statuses"),
         help_text=_("Devices with these statuses are left out of the report (e.g. “decommissioning”)."),
     )
+    passthrough_device_types = models.ManyToManyField(
+        to="dcim.DeviceType",
+        blank=True,
+        related_name="+",
+        verbose_name=_("passthrough device types"),
+        help_text=_(
+            "Device types (e.g. a splice/distribution box) that a box diagram should see "
+            "through rather than treat as the final destination — the diagram keeps following "
+            "the cable chain past any of these until it reaches a real endpoint, however many "
+            "of them are chained in a row."
+        ),
+    )
 
     class Meta:
         verbose_name = _("settings")
