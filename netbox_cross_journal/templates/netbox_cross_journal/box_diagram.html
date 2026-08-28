@@ -87,7 +87,7 @@
                 {% else %}
                 {% url 'dcim:frontport_edit' pk=cell.front_port_id as edit_url %}
                 <td class="col-side">
-                  <a href="{{ edit_url }}" class="side-btn" title="{% trans 'Edit this port' %}">{{ cell.side }}</a>
+                  <a href="{{ edit_url }}" class="side-btn" title="{% trans 'Edit this port' %}">{% if cell.side %}{{ cell.side }}{% else %}<i class="mdi mdi-pencil-outline"></i>{% endif %}</a>
                 </td>
                 {% if cell.state == "connected" or cell.state == "documented_only" %}
                 <td>{{ cell.description|default:"—" }}</td>
