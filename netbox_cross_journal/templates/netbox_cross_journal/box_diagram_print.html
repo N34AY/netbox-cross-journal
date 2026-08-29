@@ -7,7 +7,8 @@
   <style>
     /* Physical (cm/pt) units throughout, not rem — this page's whole point is fitting a
        known amount of paper, and only absolute units make that predictable in print. */
-    body { font-family: sans-serif; margin: 0.6cm; color: #000; }
+    @page { size: A4; margin: 0; }
+    body { font-family: sans-serif; margin: 0.15cm 0.6cm 0.6cm; color: #000; }
     h1 { font-size: 12pt; margin: 0 0 0.15cm; }
     .meta { font-size: 8pt; color: #444; margin-bottom: 0.4cm; }
 
@@ -19,10 +20,31 @@
 
     /* Two plints per row, each stretched to fill its half of the page width, then the next
        pair of plints continues below — rather than many narrow cards, since a separate
-       "опис"/"з'єднання" column pair per pair needs real width to stay legible. */
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4cm; }
+       "опис"/"з'єднання" column pair per pair needs real width to stay legible. Column gap
+       (between the two plints in a row) is half the row gap — tight enough that the sheet
+       still reads as pairs of columns, roomy enough for the dashed cut line below to sit in
+       without touching either card. */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 0.2cm; row-gap: 0.4cm; }
 
-    .plint { border: 0.75pt solid #333; break-inside: avoid; }
+    /* Dashed cut lines live in the gap between cards, not on the card's own solid border —
+       a pseudo-element per direction, anchored via top/left:100% (the card's own bottom/right
+       edge) then pushed out by exactly half the gap via margin, which centers it reliably
+       (a negative `bottom`/`right` offset was tried first and consistently rendered
+       off-center — margin-based placement from the 100% anchor doesn't have that problem).
+       Vertical line spans the card's own box, which CSS Grid already stretches to the full
+       row height by default, so it reaches the whole row regardless of which of the two
+       cards in it is shorter. The horizontal line's suppression is handled entirely by the
+       `.page-end` class added by the script at the bottom (computed from actual page-break
+       positions) — not by DOM position — see that script's comment for why. */
+    .plint { border: 0.75pt solid #333; break-inside: avoid; position: relative; }
+    .plint:nth-child(odd)::after {
+      content: ""; position: absolute; top: 0; bottom: 0; left: 100%; margin-left: 0.1cm;
+      border-right: 0.75pt dashed #999;
+    }
+    .plint:not(.page-end)::before {
+      content: ""; position: absolute; left: 0; right: 0; top: 100%; margin-top: 0.2cm;
+      border-bottom: 0.75pt dashed #999;
+    }
     .plint-name {
       font-size: 8pt; font-weight: 700; text-align: center;
       background: #e9ecef; padding: 0.08cm 0; border-bottom: 0.75pt solid #333;
@@ -62,7 +84,7 @@
 
     @media print {
       .toolbar { display: none; }
-      body { margin: 0.4cm; }
+      body { margin: 0.1cm 0.4cm 0.4cm; }
       .plint { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
@@ -110,5 +132,54 @@
     </div>
     {% endfor %}
   </div>
+
+  <script>
+    // Marks the last row of plints on each physical printed page with .page-end, so the
+    // horizontal dashed cut-line (see .plint:not(.page-end)::before above) doesn't render
+    // right where a page break falls — there's nothing to cut there, the rest of the sheet
+    // is already on a separate piece of paper. CSS alone can't detect this (browsers don't
+    // expose page-break positions to selectors), so this simulates the same page-filling
+    // break-inside:avoid already does for real, using the same @page size/margin constants
+    // set above — this only needs to stay in sync with those, not with anything dynamic.
+    (function () {
+      var CM_TO_PX = 96 / 2.54;
+      var PAGE_HEIGHT_CM = 29.7;   // @page size: A4
+      var MARGIN_TOP_CM = 0.1;     // @media print body margin, top
+      var MARGIN_BOTTOM_CM = 0.4;  // @media print body margin, bottom
+      var ROW_GAP_CM = 0.4;        // .grid row-gap
+      var usablePagePx = (PAGE_HEIGHT_CM - MARGIN_TOP_CM - MARGIN_BOTTOM_CM) * CM_TO_PX;
+      var rowGapPx = ROW_GAP_CM * CM_TO_PX;
+
+      var plints = Array.prototype.slice.call(document.querySelectorAll('.plint'));
+      if (!plints.length) return;
+
+      // Group into rows: consecutive plints sharing (near enough) the same offsetTop —
+      // the grid always lays out exactly 2 per row, but grouping by position rather than
+      // hardcoding "every 2" stays correct if the column count ever changes.
+      var rows = [];
+      plints.forEach(function (el) {
+        var top = el.offsetTop;
+        var row = rows[rows.length - 1];
+        if (!row || Math.abs(top - row.top) > 1) {
+          rows.push({ top: top, els: [el] });
+        } else {
+          row.els.push(el);
+        }
+      });
+
+      var used = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var rowHeight = Math.max.apply(null, rows[i].els.map(function (el) { return el.offsetHeight; }));
+        var withGap = rowHeight + (used > 0 ? rowGapPx : 0);
+        if (used > 0 && used + withGap > usablePagePx) {
+          rows[i - 1].els.forEach(function (el) { el.classList.add('page-end'); });
+          used = rowHeight;
+        } else {
+          used += withGap;
+        }
+      }
+      rows[rows.length - 1].els.forEach(function (el) { el.classList.add('page-end'); });
+    })();
+  </script>
 </body>
 </html>
