@@ -2,12 +2,11 @@
 KRONE/110 wall box) as a plint-by-pair grid — one row per RearPort ("plint"), one cell per
 pair/position.
 
-Why this exists instead of reusing topology.build_topology_svg(): that diagram draws one
+Why this exists instead of reusing the topology page (topology.py): that diagram draws one
 node per *device* and one edge per *cable*. A cross-connect box with, say, 30 patched pairs
-all landing on the same voice gateway produces 30 parallel edges between the same two nodes —
-neato has no good layout for that (see topology.py's docstring on why neato is even used
-elsewhere), the port labels overlap, and the picture answers "what's connected to what device"
-when the actual question inside a box is "which pair goes where, plint by plint". A fixed
+all landing on the same voice gateway becomes 30 parallel edges between the same two nodes,
+and the picture answers "what's connected to what device" when the actual question inside a
+box is "which pair goes where, plint by plint". A fixed
 grid — the same shape a technician sees looking at the physical punch block — answers that
 directly and doesn't degrade as pair count grows.
 

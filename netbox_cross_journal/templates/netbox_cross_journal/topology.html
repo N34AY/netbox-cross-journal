@@ -1,53 +1,121 @@
-{% load i18n %}
+{% load i18n static %}
 <!doctype html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}">
 <head>
   <meta charset="utf-8">
-  <title>{% trans "Topology" %} — {{ data.scope_label }}</title>
-  <style>
-    body { font-family: sans-serif; margin: 2rem; color: #212529; }
-    h1 { margin-bottom: 0.25rem; }
-    .meta { color: #6c757d; margin-bottom: 1rem; }
-    .meta div { margin-bottom: 0.15rem; }
-    .legend { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: 0.85rem; }
-    .legend .swatch { display: inline-block; width: 1.5rem; height: 0; border-top-width: 3px; border-top-style: solid; vertical-align: middle; margin-right: 0.35rem; }
-    .legend .box { display: inline-block; width: 0.9rem; height: 0.9rem; border-radius: 3px; vertical-align: middle; margin-right: 0.35rem; }
-    .diagram { border: 1px solid #dee2e6; overflow: auto; }
-    .diagram svg { display: block; max-width: 100%; height: auto; }
-    .toolbar { position: fixed; top: 1rem; right: 1rem; }
-    .toolbar button {
-      padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer;
-      background: #0066cc; color: #fff; border: none; border-radius: 4px;
-    }
-    @media print {
-      .toolbar { display: none; }
-      body { margin: 0.5rem; }
-      .diagram { border: none; overflow: visible; }
-      .diagram svg { max-width: none; width: 100%; }
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% trans "Topology" %} — {{ graph.scope.label }}</title>
+  <script>
+    // Follow NetBox's own light/dark choice (stored by its UI), falling back to the OS setting.
+    (function () {
+      var mode = null;
+      try { mode = localStorage.getItem("netbox-color-mode"); } catch (e) {}
+      if (mode !== "dark" && mode !== "light") {
+        mode = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      document.documentElement.setAttribute("data-theme", mode);
+    })();
+  </script>
+  <link rel="stylesheet" href="{% static 'netbox_cross_journal/topology.css' %}">
+  <style id="print-page-style"></style>
 </head>
 <body>
-  <div class="toolbar">
-    <button onclick="window.print()">{% trans "Print" %}</button>
+  <header class="print-header" id="print-header-block">
+    <div>
+      <div class="ph-title">{% if graph.scope.company %}{{ graph.scope.company }} — {% endif %}{% trans "Topology" %}: {{ graph.scope.label }}</div>
+      <div class="ph-meta" id="print-meta"></div>
+    </div>
+    <div class="ph-legend" id="print-legend"></div>
+  </header>
+
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <header class="scope">
+        {% if graph.scope.company %}<div class="scope-company">{{ graph.scope.company }}</div>{% endif %}
+        <h1>{% trans "Topology" %}</h1>
+        <div class="scope-label">{{ graph.scope.label }}</div>
+        {% if graph.scope.site and graph.scope.kind != "site" %}<div class="scope-meta">{% trans "Site" %}: {{ graph.scope.site }}</div>{% endif %}
+        {% if graph.scope.location and graph.scope.kind == "rack" %}<div class="scope-meta">{% trans "Location" %}: {{ graph.scope.location }}</div>{% endif %}
+      </header>
+
+      <section class="block">
+        <div class="block-title">{% trans "Connections" %}</div>
+        <div class="kind-toggles" id="kind-toggles"></div>
+      </section>
+
+      <section class="block">
+        <div class="block-title">{% trans "Display" %}</div>
+        <label class="switch"><input type="checkbox" id="opt-neighbors"><span></span>{% trans "Show connected neighbors" %}</label>
+        <label class="switch"><input type="checkbox" id="opt-external"><span></span>{% trans "Show devices outside scope" %}</label>
+        <label class="switch"><input type="checkbox" id="opt-unconnected"><span></span>{% trans "Show devices without connections" %}</label>
+        <label class="switch"><input type="checkbox" id="opt-labels"><span></span>{% trans "Cable labels" %}</label>
+      </section>
+
+      <section class="block block-grow">
+        <div class="block-title">
+          {% trans "Filters" %}
+          <button type="button" class="link-btn" id="reset-filters">{% trans "Reset" %}</button>
+        </div>
+        <div id="facets"></div>
+      </section>
+    </aside>
+
+    <main class="stage">
+      <div class="topbar">
+        <button type="button" class="icon-btn" id="toggle-sidebar" title="{% trans "Filters" %}">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+        </button>
+        <div class="stats" id="stats"></div>
+        <div class="spacer"></div>
+        <div class="btn-group">
+          <button type="button" class="icon-btn" data-zoom="out" title="{% trans "Zoom out" %} (−)">−</button>
+          <button type="button" class="zoom-level" data-zoom="reset" id="zoom-level" title="{% trans "Actual size" %} (1)">100%</button>
+          <button type="button" class="icon-btn" data-zoom="in" title="{% trans "Zoom in" %} (+)">+</button>
+        </div>
+        <button type="button" class="btn" data-zoom="fit" title="{% trans "Fit to window" %} (0)">{% trans "Fit" %}</button>
+        <button type="button" class="btn" id="export-svg">{% trans "Export SVG" %}</button>
+        <div class="popover-wrap">
+          <button type="button" class="btn btn-primary" id="print-open">{% trans "Print" %}</button>
+          <div class="popover" id="print-popover" hidden>
+            <label>{% trans "Paper" %}
+              <select id="print-paper">
+                <option value="A4">A4</option>
+                <option value="A3">A3</option>
+                <option value="A2">A2</option>
+                <option value="A1">A1</option>
+                <option value="A0">A0</option>
+              </select>
+            </label>
+            <label>{% trans "Orientation" %}
+              <select id="print-orientation">
+                <option value="landscape">{% trans "Landscape" %}</option>
+                <option value="portrait">{% trans "Portrait" %}</option>
+              </select>
+            </label>
+            <label class="check"><input type="checkbox" id="print-header" checked> {% trans "Title and legend" %}</label>
+            <p class="hint">{% trans "The whole diagram (as currently filtered) is scaled to fit one page. It stays vector, so the PDF can be zoomed in." %}</p>
+            <button type="button" class="btn btn-primary" id="print-go">{% trans "Print" %}</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas" id="canvas">
+        <svg id="graph" class="graph" xmlns="http://www.w3.org/2000/svg">
+          <g id="viewport"></g>
+        </svg>
+        <div class="legend" id="legend"></div>
+        <div class="details" id="details" hidden></div>
+        <div class="tooltip" id="tooltip" hidden></div>
+        <div class="empty" id="empty" hidden>{% trans "Nothing matches the current filters." %}</div>
+        <div class="busy" id="busy" hidden><span class="spinner"></span>{% trans "Laying out…" %}</div>
+      </div>
+    </main>
   </div>
 
-  <h1>{% if data.company_name %}{{ data.company_name }} — {% endif %}{% trans "Topology" %}</h1>
-  <div class="meta">
-    {% if data.site_name %}<div><strong>{% trans "Site" %}:</strong> {{ data.site_name }}</div>{% endif %}
-    {% if data.location_name %}<div><strong>{% trans "Location" %}:</strong> {{ data.location_name }}</div>{% endif %}
-    <div><strong>{% if data.scope_kind == "rack" %}{% trans "Rack" %}{% elif data.scope_kind == "location" %}{% trans "Location" %}{% else %}{% trans "Site" %}{% endif %}:</strong> {{ data.scope_label }}</div>
-  </div>
 
-  <div class="legend">
-    <span><span class="box" style="background:#2C3E50;"></span>{% trans "Device in scope" %}</span>
-    <span><span class="box" style="background:#f8f9fa; border:1px dashed #adb5bd;"></span>{% trans "Device outside scope" %}</span>
-    <span><span class="swatch" style="border-color:#2C3E50;"></span>{% trans "Data cable" %}</span>
-    <span><span class="swatch" style="border-color:#c0392b; border-top-style:dashed;"></span>{% trans "Power cable" %}</span>
-  </div>
-
-  <div class="diagram">
-    {{ svg|safe }}
-  </div>
+  {{ graph|json_script:"topology-data" }}
+  {{ i18n|json_script:"topology-i18n" }}
+  <script src="{% static 'netbox_cross_journal/vendor/elk.bundled.js' %}"></script>
+  <script src="{% static 'netbox_cross_journal/topology.js' %}"></script>
 </body>
 </html>

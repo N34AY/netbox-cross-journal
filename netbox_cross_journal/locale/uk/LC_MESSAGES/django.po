@@ -294,6 +294,21 @@ msgstr "вільна"
 msgid "Print"
 msgstr "Друк"
 
+msgid "Zoom out"
+msgstr "Зменшити"
+
+msgid "Zoom in"
+msgstr "Збільшити"
+
+msgid "Fit to window"
+msgstr "Вписати у вікно"
+
+msgid "Fit"
+msgstr "Вписати"
+
+msgid "Actual size"
+msgstr "Реальний розмір"
+
 #: templates/netbox_cross_journal/inc/device_panel.html:18
 msgid "Box diagram (print)"
 msgstr "Схема плінта (друк)"
@@ -366,6 +381,121 @@ msgstr "Кабель живлення"
 #: views.py:109
 msgid "Cross Journal settings saved."
 msgstr "Налаштування крос-журналу збережено."
+
+
+msgid "Connections"
+msgstr "З'єднання"
+
+msgid "Display"
+msgstr "Відображення"
+
+msgid "Show connected neighbors"
+msgstr "Показувати підключені сусідні пристрої"
+
+msgid "Show devices outside scope"
+msgstr "Показувати пристрої поза межами об'єкта"
+
+msgid "Show devices without connections"
+msgstr "Показувати пристрої без з'єднань"
+
+msgid "Cable labels"
+msgstr "Мітки кабелів"
+
+msgid "Filters"
+msgstr "Фільтри"
+
+msgid "Reset"
+msgstr "Скинути"
+
+msgid "Export SVG"
+msgstr "Експорт SVG"
+
+msgid "Paper"
+msgstr "Папір"
+
+msgid "Orientation"
+msgstr "Орієнтація"
+
+msgid "Landscape"
+msgstr "Альбомна"
+
+msgid "Portrait"
+msgstr "Книжкова"
+
+msgid "Title and legend"
+msgstr "Заголовок і легенда"
+
+msgid "The whole diagram (as currently filtered) is scaled to fit one page. It stays vector, so the PDF can be zoomed in."
+msgstr "Уся схема (з поточними фільтрами) масштабується на одну сторінку. Вона залишається векторною, тож PDF можна збільшувати без втрати якості."
+
+msgid "Nothing matches the current filters."
+msgstr "Нічого не відповідає поточним фільтрам."
+
+msgid "Laying out…"
+msgstr "Побудова схеми…"
+
+msgid "Console"
+msgstr "Консоль"
+
+msgid "Device types"
+msgstr "Типи пристроїв"
+
+msgid "Roles"
+msgstr "Ролі"
+
+msgid "Racks"
+msgstr "Шафи"
+
+msgid "Locations"
+msgstr "Розташування"
+
+msgid "Manufacturers"
+msgstr "Виробники"
+
+msgid "Search…"
+msgstr "Пошук…"
+
+msgid "(none)"
+msgstr "(не вказано)"
+
+msgid "Clear"
+msgstr "Очистити"
+
+msgid "devices"
+msgstr "пристроїв"
+
+msgid "connections"
+msgstr "з'єднань"
+
+msgid "Outside scope"
+msgstr "Поза межами об'єкта"
+
+msgid "Open in NetBox"
+msgstr "Відкрити в NetBox"
+
+msgid "Show only this and neighbors"
+msgstr "Лише цей і сусідні"
+
+msgid "Length"
+msgstr "Довжина"
+
+msgid "Manufacturer"
+msgstr "Виробник"
+
+msgid "No visible connections"
+msgstr "Немає видимих з'єднань"
+
+msgid "Power feed"
+msgstr "Лінія живлення"
+
+msgid "Circuit"
+msgstr "Канал зв'язку"
+
+msgid "Generated"
+msgstr "Згенеровано"
+
+msgid "Layout failed"
+msgstr "Не вдалося побудувати схему"
 
 #~ msgid "via"
 #~ msgstr "через"
