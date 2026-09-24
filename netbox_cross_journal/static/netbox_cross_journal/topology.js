@@ -78,14 +78,26 @@
     { key: "rack", label: T.racks, value: (n) => n.rack },
     { key: "location", label: T.locations, value: (n) => n.location },
     { key: "manufacturer", label: T.manufacturers, value: (n) => n.manufacturer },
+    // Multi-valued: a device matches if it has any selected tag (or all, with "match all").
+    { key: "tag", label: T.tags, multi: true, value: (n) => (n.tags.length ? n.tags.map((t) => t.name) : [""]) },
   ];
+  const tagColors = new Map();
+  devices.forEach((n) => n.tags.forEach((t) => tagColors.set(t.name, t.color)));
+  const facetValues = (f, n) => (f.multi ? f.value(n) : [f.value(n)]);
   FACETS.forEach((f) => {
     const counts = new Map();
-    devices.forEach((n) => { const v = f.value(n); counts.set(v, (counts.get(v) || 0) + 1); });
+    devices.forEach((n) => facetValues(f, n).forEach((v) => counts.set(v, (counts.get(v) || 0) + 1)));
     f.options = Array.from(counts, ([value, count]) => ({
       value, count, label: value === "" ? T.none : (f.display ? f.display(value) : value),
     })).sort((a, b) => (a.value === "") - (b.value === "") || collator.compare(a.label, b.label));
   });
+  function facetMatches(f, n) {
+    const sel = state.sel[f.key];
+    if (!sel.size) return true;
+    const vals = facetValues(f, n);
+    if (f.multi && state.tagMatchAll) return Array.from(sel).every((v) => vals.includes(v));
+    return vals.some((v) => sel.has(v));
+  }
 
   // ---------------------------------------------------------------- state (mirrored in URL hash)
   const state = {
@@ -95,11 +107,12 @@
     external: true,
     unconnected: false,
     labels: false,
+    tagMatchAll: false,
   };
   function saveState() {
     const s = {
       k: KINDS.filter((k) => state.kinds.has(k)),
-      n: +state.neighbors, e: +state.external, u: +state.unconnected, l: +state.labels,
+      n: +state.neighbors, e: +state.external, u: +state.unconnected, l: +state.labels, ta: +state.tagMatchAll,
     };
     FACETS.forEach((f) => { if (state.sel[f.key].size) s[f.key] = Array.from(state.sel[f.key]); });
     history.replaceState(null, "", "#" + encodeURIComponent(JSON.stringify(s)));
@@ -113,6 +126,7 @@
       if ("e" in s) state.external = !!s.e;
       if ("u" in s) state.unconnected = !!s.u;
       if ("l" in s) state.labels = !!s.l;
+      if ("ta" in s) state.tagMatchAll = !!s.ta;
       FACETS.forEach((f) => {
         if (Array.isArray(s[f.key])) {
           const valid = new Set(f.options.map((o) => o.value));
@@ -129,7 +143,7 @@
     const focus = new Set(
       graph.nodes
         .filter((n) => allowed(n) && (!anySel || (n.kind === "device" &&
-          FACETS.every((f) => !state.sel[f.key].size || state.sel[f.key].has(f.value(n))))))
+          FACETS.every((f) => facetMatches(f, n)))))
         .map((n) => n.id)
     );
     const nodes = new Set(focus);
@@ -556,6 +570,11 @@
         [T.rack, [n.rack, n.position].filter(Boolean).join(" ")], [T.location, n.location],
       ].filter((r) => r[1]);
       const dl = h("dl", null, rows.flatMap(([k, v]) => [h("dt", { text: k }), h("dd", { text: v })]));
+      if (n.tags.length) {
+        dl.appendChild(h("dt", { text: T.tags }));
+        dl.appendChild(h("dd", { class: "tag-chips" }, n.tags.map((t) =>
+          h("span", { class: "tag-chip" }, [h("span", { class: "tag-dot", style: `background:${t.color}` }), t.name]))));
+      }
       const conns = h("div", { class: "details-conns" }, [h("h3", { text: T.n_connections })]);
       const edgeIds = Array.from(adjacency.get(n.id) || []);
       const items = edgeIds.map((id) => {
@@ -646,7 +665,9 @@
         onFiltersChanged();
       });
       const row = h("label", { class: "facet-option", title: o.label }, [
-        cb, h("span", { class: "name", text: o.label }), h("span", { class: "count", text: String(o.count) }),
+        cb,
+        f.key === "tag" && o.value ? h("span", { class: "tag-dot", style: `background:${tagColors.get(o.value)}` }) : null,
+        h("span", { class: "name", text: o.label }), h("span", { class: "count", text: String(o.count) }),
       ]);
       row._cb = cb; row._value = o.value; row._text = o.label.toLowerCase();
       list.appendChild(row);
@@ -661,10 +682,17 @@
       syncControls();
       onFiltersChanged();
     } });
+    let matchAll = null;
+    if (f.multi) {
+      const input = h("input", { type: "checkbox", id: "opt-tag-all" });
+      input.addEventListener("change", () => { state.tagMatchAll = input.checked; onFiltersChanged(); });
+      matchAll = h("label", { class: "switch switch-sm" }, [input, h("span"), T.match_all_tags]);
+    }
     const details = h("details", { class: "facet" }, [
       h("summary", null, [f.label, badge]),
       h("div", { class: "facet-body" }, [
-        f.options.length > 7 ? search : null, list, h("div", { class: "facet-actions" }, [clear]),
+        f.options.length > 7 ? search : null, list, matchAll,
+        h("div", { class: "facet-actions" }, [clear]),
       ]),
     ]);
     if (f.open || state.sel[f.key].size) details.open = true;
@@ -682,13 +710,14 @@
   function syncControls() {
     KINDS.forEach((k) => kindButtons[k].setAttribute("aria-pressed", String(state.kinds.has(k))));
     Object.entries(OPTS).forEach(([key, id]) => { $(id).checked = state[key]; });
+    if ($("opt-tag-all")) $("opt-tag-all").checked = state.tagMatchAll;
     Object.entries(facetEls).forEach(([key, { rows }]) => rows.forEach((r) => { r._cb.checked = state.sel[key].has(r._value); }));
     renderFacetBadges();
   }
   $("reset-filters").addEventListener("click", () => {
     state.kinds = new Set(KINDS);
     FACETS.forEach((f) => state.sel[f.key].clear());
-    state.neighbors = true; state.external = true; state.unconnected = false;
+    state.neighbors = true; state.external = true; state.unconnected = false; state.tagMatchAll = false;
     syncControls();
     onFiltersChanged();
   });
@@ -723,7 +752,7 @@
     FACETS.forEach((f) => {
       if (!state.sel[f.key].size) return;
       const names = f.options.filter((o) => state.sel[f.key].has(o.value)).map((o) => o.label);
-      parts.push(`${f.label}: ${names.join(", ")}`);
+      parts.push(`${f.label}: ${names.join(f.multi && state.tagMatchAll ? " + " : ", ")}`);
     });
     if (state.kinds.size < KINDS.length) parts.push(KINDS.filter((k) => state.kinds.has(k)).map((k) => T[k]).join(" + "));
     return parts.join(" · ");

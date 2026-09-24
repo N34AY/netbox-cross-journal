@@ -105,6 +105,7 @@ def _device_node(device: Device, in_scope: bool) -> dict:
         "site": device.site.name if device.site else "",
         "position": f"U{int(device.position)}" if device.position is not None else "",
         "status": str(device.get_status_display()),
+        "tags": [{"name": t.name, "color": f"#{t.color}"} for t in device.tags.all()],
         "in_scope": in_scope,
         "url": device.get_absolute_url(),
         "ports": [],
@@ -123,7 +124,7 @@ def _object_node(obj, model: str) -> dict:
         "name": name,
         "type": sub,
         "manufacturer": "", "role": "", "role_color": "", "rack": "", "location": "",
-        "site": "", "position": "", "status": "",
+        "site": "", "position": "", "status": "", "tags": [],
         "in_scope": False,
         "url": obj.get_absolute_url(),
         "ports": [],
@@ -159,7 +160,7 @@ def build_topology_graph(scope) -> dict:
     }
     for device in Device.objects.filter(pk__in=external_ids).select_related(
         "device_type", "device_type__manufacturer", "role", "site", "location", "rack",
-    ):
+    ).prefetch_related("tags"):
         nodes[f"d{device.pk}"] = _device_node(device, in_scope=False)
 
     ports: dict[str, dict] = {}

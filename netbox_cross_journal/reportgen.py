@@ -62,7 +62,7 @@ class PowerRow:
 @dataclass
 class ReportData:
     scope_label: str
-    scope_kind: str  # "rack" | "location" | "site" | "region" (topology only)
+    scope_kind: str  # "rack" | "location" | "site" | "region"
     site_name: str
     location_name: str
     company_name: str
@@ -99,7 +99,7 @@ def _devices_for_scope(scope):
     if isinstance(scope, Site):
         return qs.filter(site=scope)
     if isinstance(scope, Region):
-        # Only the topology page is offered for regions (see template_content.py).
+        # A region spans every site in it and in its child regions.
         return qs.filter(site__region__in=scope.get_descendants(include_self=True))
     raise TypeError(f"Unsupported scope type: {type(scope)!r}")
 

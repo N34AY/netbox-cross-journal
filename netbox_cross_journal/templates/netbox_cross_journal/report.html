@@ -31,7 +31,7 @@
   <div class="meta">
     {% if data.site_name %}<div><strong>{% trans "Site" %}:</strong> {{ data.site_name }}</div>{% endif %}
     {% if data.location_name %}<div><strong>{% trans "Location" %}:</strong> {{ data.location_name }}</div>{% endif %}
-    <div><strong>{% if data.scope_kind == "rack" %}{% trans "Rack" %}{% elif data.scope_kind == "location" %}{% trans "Location" %}{% else %}{% trans "Site" %}{% endif %}:</strong> {{ data.scope_label }}</div>
+    <div><strong>{% if data.scope_kind == "rack" %}{% trans "Rack" %}{% elif data.scope_kind == "location" %}{% trans "Location" %}{% elif data.scope_kind == "region" %}{% trans "Region" %}{% else %}{% trans "Site" %}{% endif %}:</strong> {{ data.scope_label }}</div>
   </div>
 
   <h2>{% trans "Devices" %} ({{ data.devices|length }})</h2>

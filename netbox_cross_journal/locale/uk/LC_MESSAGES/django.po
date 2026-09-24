@@ -503,6 +503,12 @@ msgstr "Регіон"
 msgid "Sites"
 msgstr "Сайти"
 
+msgid "Match all selected tags"
+msgstr "Лише з усіма вибраними тегами"
+
+msgid "Region:"
+msgstr "Регіон:"
+
 #~ msgid "via"
 #~ msgstr "через"
 

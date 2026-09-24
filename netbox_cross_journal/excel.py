@@ -53,7 +53,9 @@ def _write_cover(ws, data: ReportData):
         ws[f"B{row}"].font = Font(bold=True)
         ws[f"C{row}"] = data.location_name
         row += 1
-    ws[f"B{row}"] = {"rack": _("Rack:"), "location": _("Location:"), "site": _("Site:")}[data.scope_kind]
+    ws[f"B{row}"] = {
+        "rack": _("Rack:"), "location": _("Location:"), "site": _("Site:"), "region": _("Region:"),
+    }[data.scope_kind]
     ws[f"B{row}"].font = Font(bold=True)
     ws[f"C{row}"] = data.scope_label
     row += 2
