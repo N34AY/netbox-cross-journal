@@ -56,6 +56,15 @@ services:
       redis-cache:
         condition: service_healthy
     env_file: env/netbox.env
+    environment:
+      # Dev hot reload: restart granian when plugin source (py/templates) changes.
+      # Backpressure defaults to the worker count; keep it well above 1 so one slow request
+      # (e.g. a big graphviz render) can't block the whole UI.
+      GRANIAN_WORKERS: "2"
+      GRANIAN_BACKPRESSURE: "8"
+      GRANIAN_RELOAD: "true"
+      GRANIAN_RELOAD_PATHS: /opt/netbox-plugin-src/netbox_cross_journal
+      GRANIAN_RELOAD_IGNORE_DIRS: __pycache__
     ports:
       - "8001:8080"
     user: "netbox:root"
@@ -84,7 +93,14 @@ services:
         condition: service_healthy
     env_file: env/netbox.env
     user: "netbox:root"
+    # watchmedo restarts the worker when plugin .py files change (dev hot reload).
     command:
+      - /opt/netbox/venv/bin/watchmedo
+      - auto-restart
+      - --directory=/opt/netbox-plugin-src/netbox_cross_journal
+      - --pattern=*.py
+      - --recursive
+      - --
       - /opt/netbox/venv/bin/python
       - /opt/netbox/netbox/manage.py
       - rqworker
