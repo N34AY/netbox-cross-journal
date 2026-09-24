@@ -74,6 +74,7 @@
     { key: "device", label: T.devices, value: (n) => n.id, display: (v) => nodeById.get(v).name, open: true },
     { key: "type", label: T.device_types, value: (n) => n.type },
     { key: "role", label: T.roles, value: (n) => n.role },
+    { key: "site", label: T.sites, value: (n) => n.site },
     { key: "rack", label: T.racks, value: (n) => n.rack },
     { key: "location", label: T.locations, value: (n) => n.location },
     { key: "manufacturer", label: T.manufacturers, value: (n) => n.manufacturer },

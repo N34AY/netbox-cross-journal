@@ -222,7 +222,9 @@ def build_topology_graph(scope) -> dict:
         "scope": {
             "label": str(scope),
             "kind": kind,
-            "site": scope.name if kind == "site" else (scope.site.name if scope.site else ""),
+            "site": scope.name if kind == "site" else (
+                scope.site.name if getattr(scope, "site", None) else ""
+            ),
             "location": scope.name if kind == "location" else (
                 scope.location.name if getattr(scope, "location", None) else ""
             ),

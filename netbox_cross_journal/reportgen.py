@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from dcim.models import Cable, Device, Location, PowerOutlet, PowerPort, Rack, Site
+from dcim.models import Cable, Device, Location, PowerOutlet, PowerPort, Rack, Region, Site
 from django.utils.translation import gettext_lazy as _
 
 from .models import CrossJournalSettings
@@ -62,7 +62,7 @@ class PowerRow:
 @dataclass
 class ReportData:
     scope_label: str
-    scope_kind: str  # "rack" | "location" | "site"
+    scope_kind: str  # "rack" | "location" | "site" | "region" (topology only)
     site_name: str
     location_name: str
     company_name: str
@@ -98,6 +98,9 @@ def _devices_for_scope(scope):
         return qs.filter(location_id__in=location_ids)
     if isinstance(scope, Site):
         return qs.filter(site=scope)
+    if isinstance(scope, Region):
+        # Only the topology page is offered for regions (see template_content.py).
+        return qs.filter(site__region__in=scope.get_descendants(include_self=True))
     raise TypeError(f"Unsupported scope type: {type(scope)!r}")
 
 
@@ -108,6 +111,8 @@ def _scope_kind(scope) -> str:
         return "location"
     if isinstance(scope, Site):
         return "site"
+    if isinstance(scope, Region):
+        return "region"
     raise TypeError(f"Unsupported scope type: {type(scope)!r}")
 
 

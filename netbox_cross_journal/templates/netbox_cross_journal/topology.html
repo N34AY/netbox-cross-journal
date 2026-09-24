@@ -33,7 +33,7 @@
       <header class="scope">
         {% if graph.scope.company %}<div class="scope-company">{{ graph.scope.company }}</div>{% endif %}
         <h1>{% trans "Topology" %}</h1>
-        <div class="scope-label">{{ graph.scope.label }}</div>
+        <div class="scope-label">{% if graph.scope.kind == "region" %}{% trans "Region" %}: {% endif %}{{ graph.scope.label }}</div>
         {% if graph.scope.site and graph.scope.kind != "site" %}<div class="scope-meta">{% trans "Site" %}: {{ graph.scope.site }}</div>{% endif %}
         {% if graph.scope.location and graph.scope.kind == "rack" %}<div class="scope-meta">{% trans "Location" %}: {{ graph.scope.location }}</div>{% endif %}
       </header>

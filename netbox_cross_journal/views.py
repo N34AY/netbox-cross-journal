@@ -15,15 +15,15 @@ from .excel import build_workbook
 from .forms import CrossJournalSettingsForm
 from .models import CrossJournalSettings
 from .reportgen import gather_report
-from .template_content import SCOPE_MODELS
+from .template_content import SCOPE_MODELS, TOPOLOGY_SCOPE_MODELS
 from .topology import build_topology_graph
 
 
-def _resolve_scope(content_type_id: int, object_id: int):
+def _resolve_scope(content_type_id: int, object_id: int, allowed=SCOPE_MODELS):
     content_type = get_object_or_404(ContentType, pk=content_type_id)
     # Content type IDs differ between databases, so a stale/bookmarked URL can point at an
     # unrelated model — 404 instead of crashing in gather_report.
-    if f"{content_type.app_label}.{content_type.model}" not in SCOPE_MODELS:
+    if f"{content_type.app_label}.{content_type.model}" not in allowed:
         raise Http404(f"Unsupported scope type: {content_type}")
     model = content_type.model_class()
     return get_object_or_404(model, pk=object_id)
@@ -67,7 +67,7 @@ class TopologyView(LoginRequiredMixin, View):
     template_name = "netbox_cross_journal/topology.html"
 
     def get(self, request, content_type_id, object_id):
-        scope = _resolve_scope(content_type_id, object_id)
+        scope = _resolve_scope(content_type_id, object_id, allowed=TOPOLOGY_SCOPE_MODELS)
         return render(request, self.template_name, {
             "graph": build_topology_graph(scope),
             "i18n": _topology_i18n(),
@@ -85,6 +85,7 @@ def _topology_i18n() -> dict:
         "roles": gettext("Roles"),
         "racks": gettext("Racks"),
         "locations": gettext("Locations"),
+        "sites": gettext("Sites"),
         "manufacturers": gettext("Manufacturers"),
         "search": gettext("Search…"),
         "none": gettext("(none)"),

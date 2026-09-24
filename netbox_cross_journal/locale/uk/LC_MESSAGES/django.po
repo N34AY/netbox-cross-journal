@@ -497,6 +497,12 @@ msgstr "Згенеровано"
 msgid "Layout failed"
 msgstr "Не вдалося побудувати схему"
 
+msgid "Region"
+msgstr "Регіон"
+
+msgid "Sites"
+msgstr "Сайти"
+
 #~ msgid "via"
 #~ msgstr "через"
 
