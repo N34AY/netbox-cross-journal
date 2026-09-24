@@ -16,7 +16,7 @@
       document.documentElement.setAttribute("data-theme", mode);
     })();
   </script>
-  <link rel="stylesheet" href="{% static 'netbox_cross_journal/topology.css' %}">
+  <link rel="stylesheet" href="{% static 'netbox_cross_journal/topology.css' %}?v={{ asset_version }}">
   <style id="print-page-style"></style>
 </head>
 <body>
@@ -115,7 +115,7 @@
 
   {{ graph|json_script:"topology-data" }}
   {{ i18n|json_script:"topology-i18n" }}
-  <script src="{% static 'netbox_cross_journal/vendor/elk.bundled.js' %}"></script>
-  <script src="{% static 'netbox_cross_journal/topology.js' %}"></script>
+  <script src="{% static 'netbox_cross_journal/vendor/elk.bundled.js' %}?v={{ asset_version }}"></script>
+  <script src="{% static 'netbox_cross_journal/topology.js' %}?v={{ asset_version }}"></script>
 </body>
 </html>

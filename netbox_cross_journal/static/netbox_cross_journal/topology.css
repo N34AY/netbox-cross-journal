@@ -57,6 +57,8 @@
 
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
+/* The app is a fixed full-viewport layout; only the sidebar and canvas scroll/pan. */
+@media screen { html, body { overflow: hidden; } }
 body {
   font: 13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   background: var(--bg);
@@ -103,8 +105,11 @@ button, input, select { font: inherit; color: inherit; }
 .kind-toggle[aria-pressed="false"] .swatch { border-top-color: var(--muted) !important; }
 .kind-toggle:disabled { cursor: default; opacity: 0.35; }
 
-.switch { display: flex; align-items: center; gap: 10px; padding: 4px 0; cursor: pointer; user-select: none; }
-.switch input { position: absolute; opacity: 0; pointer-events: none; }
+/* position: relative keeps the visually-hidden checkbox inside its label. Without it the
+   checkbox is positioned against the page, so in a scrolled sidebar it can sit below the
+   viewport, make the document taller, and focusing it scrolls the whole page. */
+.switch { position: relative; display: flex; align-items: center; gap: 10px; padding: 4px 0; cursor: pointer; user-select: none; }
+.switch input { position: absolute; left: 0; top: 50%; width: 1px; height: 1px; margin: 0; opacity: 0; pointer-events: none; }
 .switch span {
   flex: none; width: 30px; height: 18px; border-radius: 999px; background: var(--border);
   position: relative; transition: background 0.15s;

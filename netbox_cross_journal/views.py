@@ -10,6 +10,7 @@ from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 
+from . import config
 from .box_diagram import gather_box_diagram
 from .excel import build_workbook
 from .forms import CrossJournalSettingsForm
@@ -71,6 +72,8 @@ class TopologyView(LoginRequiredMixin, View):
         return render(request, self.template_name, {
             "graph": build_topology_graph(scope),
             "i18n": _topology_i18n(),
+            # Static URLs don't change between releases; the version busts browser caches.
+            "asset_version": config.version,
         })
 
 
