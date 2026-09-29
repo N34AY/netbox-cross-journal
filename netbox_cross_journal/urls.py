@@ -1,4 +1,5 @@
-from django.urls import path
+from django.urls import include, path
+from utilities.urls import get_model_urls
 
 from . import views
 
@@ -16,8 +17,17 @@ urlpatterns = (
     ),
     path(
         "report/<int:content_type_id>/<int:object_id>/topology/",
-        views.TopologyView.as_view(),
-        name="topology",
+        views.ScopeTopologyRedirectView.as_view(),
+        name="scope_topology",
+    ),
+    path("topology/", views.TopologyView.as_view(), name="topology"),
+    path(
+        "topology-layouts/",
+        include(get_model_urls("netbox_cross_journal", "topologylayout", detail=False)),
+    ),
+    path(
+        "topology-layouts/<int:pk>/",
+        include(get_model_urls("netbox_cross_journal", "topologylayout")),
     ),
     path(
         "device/<int:device_id>/box-diagram/",

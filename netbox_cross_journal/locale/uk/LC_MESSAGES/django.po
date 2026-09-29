@@ -509,6 +509,117 @@ msgstr "Лише з усіма вибраними тегами"
 msgid "Region:"
 msgstr "Регіон:"
 
+msgid "Saved layouts"
+msgstr "Збережені макети"
+
+msgid "Add"
+msgstr "Додати"
+
+msgid "Layout"
+msgstr "Макет"
+
+msgid "Manage"
+msgstr "Керувати"
+
+msgid "Automatic"
+msgstr "Автоматично"
+
+msgid "Manual"
+msgstr "Вручну"
+
+msgid "Auto"
+msgstr "Автоматично"
+
+msgid "Cable routing"
+msgstr "Прокладання кабелів"
+
+msgid "Around the cards (cards stay put)"
+msgstr "В обхід карток (картки на місці)"
+
+msgid "ELK interactive (snaps cards into columns)"
+msgstr "ELK інтерактивно (картки стають у колонки)"
+
+msgid "Drag cards to arrange them. New devices appear on the right with a dashed outline."
+msgstr "Перетягуйте картки, щоб розставити їх. Нові пристрої з'являються праворуч з пунктирною рамкою."
+
+msgid "Reset arrangement"
+msgstr "Скинути розташування"
+
+msgid "Save as…"
+msgstr "Зберегти як…"
+
+msgid "Layout name"
+msgstr "Назва макета"
+
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgid "Matches filters"
+msgstr "Відповідає фільтрам"
+
+msgid "Connected neighbor"
+msgstr "Підключений сусід"
+
+msgid "Not placed yet"
+msgstr "Ще не розміщено"
+
+msgid "Unsaved view"
+msgstr "Незбережений вигляд"
+
+msgid "Saving…"
+msgstr "Збереження…"
+
+msgid "Saved"
+msgstr "Збережено"
+
+msgid "Could not save"
+msgstr "Не вдалося зберегти"
+
+msgid "Regions"
+msgstr "Регіони"
+
+msgid "Open diagram"
+msgstr "Відкрити схему"
+
+msgid "Topology layout"
+msgstr "Макет топології"
+
+msgid "topology layout"
+msgstr "макет топології"
+
+msgid "topology layouts"
+msgstr "макети топології"
+
+msgid "Mode"
+msgstr "Режим"
+
+msgid "Placed devices"
+msgstr "Розміщено пристроїв"
+
+msgid "Diagram"
+msgstr "Схема"
+
+msgid "name"
+msgstr "назва"
+
+msgid "description"
+msgstr "опис"
+
+msgid "filters"
+msgstr "фільтри"
+
+msgid "mode"
+msgstr "режим"
+
+msgid "cable routing"
+msgstr "прокладання кабелів"
+
+msgid "positions"
+msgstr "позиції"
+
+msgid "Back to NetBox"
+msgstr "Повернутися в NetBox"
+
 #~ msgid "via"
 #~ msgstr "через"
 

@@ -5,8 +5,10 @@ from django.utils.translation import gettext_lazy as _
 
 from dcim.choices import DeviceStatusChoices
 from dcim.models import DeviceType
+from netbox.forms import NetBoxModelFilterSetForm, NetBoxModelForm
+from utilities.forms.rendering import FieldSet
 
-from .models import CrossJournalSettings
+from .models import CrossJournalSettings, TopologyLayout
 
 
 class CrossJournalSettingsForm(forms.ModelForm):
@@ -54,3 +56,20 @@ class CrossJournalSettingsForm(forms.ModelForm):
             "include_comments": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "excel_layout": forms.Select(attrs={"class": "form-select"}),
         }
+
+
+class TopologyLayoutForm(NetBoxModelForm):
+    """Only the descriptive fields — filters and positions are edited on the diagram itself."""
+
+    fieldsets = (
+        FieldSet("name", "description"),
+        FieldSet("tags", name=_("Tags")),
+    )
+
+    class Meta:
+        model = TopologyLayout
+        fields = ("name", "description", "tags")
+
+
+class TopologyLayoutFilterForm(NetBoxModelFilterSetForm):
+    model = TopologyLayout

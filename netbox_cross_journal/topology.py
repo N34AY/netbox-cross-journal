@@ -1,32 +1,29 @@
-"""Builds the interactive topology graph for a scope (Rack, Location, or Site) as plain JSON —
-layout and rendering happen client-side with ELK.js (see static/.../topology.js).
+"""Builds the interactive topology graph — every device in NetBox — as plain JSON; layout,
+filtering and rendering happen client-side with ELK.js (see static/.../topology.js).
 
 Why port-level JSON instead of the name-keyed rows reportgen.py produces for the table/Excel:
 - ELK's layered layout routes edges to *ports* on a node's border, which is what keeps port
   names readable and edges from running through nodes — so every edge here references the
   concrete component (interface/front port/power outlet...) on each end, not just a device.
-- The page filters by device / type / role / rack / location / connection kind without a
-  round-trip, so each node carries those facets and each edge its kind.
+- The page filters by region / site / location / rack / type / role / tag / connection kind
+  without a round-trip, so each node carries those facets (with the full location and region
+  ancestry, so picking a floor also matches the rooms on it) and each edge its kind.
 
-Devices outside the scope that a scope device is cabled to are included (in_scope=False) —
-a cable leaving the rack is exactly what someone tracing a link needs to see. When that cable
-lands on a pass-through port (front/rear port of a patch panel or distribution box) outside
-the scope, the path is followed through the box's PortMappings to whatever sits behind it, the
-same hops NetBox's cable trace shows — otherwise every box outside the scope looks like a dead
-end. Cable ends that aren't on a device at all (power feeds, circuit terminations) become
-their own small nodes.
+A rack or site page doesn't get a diagram of its own: it opens this one with that object
+preselected as a filter. Showing a filtered device's neighbors is also done client-side, and
+it follows paths through pass-through ports (front/rear ports of patch panels and
+distribution boxes) using the PortMapping pairs each such port carries in "maps" — the same
+hops NetBox's cable trace shows — so a box outside the filter isn't a dead end. Cable ends
+that aren't on a device at all (power feeds, circuit terminations) become their own nodes.
 """
 from __future__ import annotations
 
 import re
 from itertools import product
 
-from dcim.models import CableTermination, Device, FrontPort, PortMapping, RearPort
-from django.contrib.contenttypes.models import ContentType
-from django.db.models import Q
+from dcim.models import CableTermination, Device, Location, PortMapping, Rack, Region, Site
 
 from .models import CrossJournalSettings
-from .reportgen import _devices_for_scope, _scope_kind
 
 # termination model name -> connection kind shown/filtered in the UI
 _PORT_KIND = {
@@ -41,56 +38,7 @@ _PORT_KIND = {
     "powerfeed": "power",
 }
 
-# Safety net for pathological/looped patching; real paths are a handful of boxes deep.
-_MAX_PASSTHROUGH_HOPS = 16
-
-
-def _follow_passthroughs(cable_ids: set[int], scope_device_ids: list[int]) -> set[int]:
-    """Extend cable_ids with the cables behind pass-through ports outside the scope.
-
-    Only ports mapped (PortMapping) to the port the path arrived on are followed, so reaching
-    one pair of a 100-pair panel outside the scope doesn't drag in the other 99.
-    """
-    front_ct = ContentType.objects.get_for_model(FrontPort)
-    rear_ct = ContentType.objects.get_for_model(RearPort)
-    expanded_front: set[int] = set()
-    expanded_rear: set[int] = set()
-    frontier = set(cable_ids)
-    for _ in range(_MAX_PASSTHROUGH_HOPS):
-        landed = (
-            CableTermination.objects.filter(cable_id__in=frontier)
-            .filter(Q(termination_type=front_ct) | Q(termination_type=rear_ct))
-            .exclude(_device_id__in=scope_device_ids)  # scope devices' cables are all included already
-            .values_list("termination_type_id", "termination_id")
-        )
-        fronts = {pk for ct, pk in landed if ct == front_ct.pk} - expanded_front
-        rears = {pk for ct, pk in landed if ct == rear_ct.pk} - expanded_rear
-        if not fronts and not rears:
-            break
-        expanded_front |= fronts
-        expanded_rear |= rears
-        peer_fronts, peer_rears = set(), set()
-        for front_id, rear_id in PortMapping.objects.filter(
-            Q(front_port_id__in=fronts) | Q(rear_port_id__in=rears)
-        ).values_list("front_port_id", "rear_port_id"):
-            if front_id in fronts:
-                peer_rears.add(rear_id)
-            if rear_id in rears:
-                peer_fronts.add(front_id)
-        new_cables = set(
-            CableTermination.objects.filter(
-                Q(termination_type=front_ct, termination_id__in=peer_fronts)
-                | Q(termination_type=rear_ct, termination_id__in=peer_rears)
-            ).values_list("cable_id", flat=True)
-        ) - cable_ids
-        if not new_cables:
-            break
-        cable_ids |= new_cables
-        frontier = new_cables
-    return cable_ids
-
-
-def _device_node(device: Device, in_scope: bool) -> dict:
+def _device_node(device: Device, location_paths: dict, region_paths: dict) -> dict:
     role = device.role
     return {
         "id": f"d{device.pk}",
@@ -103,10 +51,15 @@ def _device_node(device: Device, in_scope: bool) -> dict:
         "rack": device.rack.name if device.rack else "",
         "location": device.location.name if device.location else "",
         "site": device.site.name if device.site else "",
+        # Facet values are ids (names aren't unique: every building has a "1st floor");
+        # locations/regions list their ancestors too, so a parent matches its children.
+        "site_id": str(device.site_id) if device.site_id else "",
+        "rack_id": str(device.rack_id) if device.rack_id else "",
+        "location_ids": location_paths.get(device.location_id, []),
+        "region_ids": region_paths.get(device.site.region_id, []) if device.site else [],
         "position": f"U{int(device.position)}" if device.position is not None else "",
         "status": str(device.get_status_display()),
         "tags": [{"name": t.name, "color": f"#{t.color}"} for t in device.tags.all()],
-        "in_scope": in_scope,
         "url": device.get_absolute_url(),
         "ports": [],
     }
@@ -124,46 +77,59 @@ def _object_node(obj, model: str) -> dict:
         "name": name,
         "type": sub,
         "manufacturer": "", "role": "", "role_color": "", "rack": "", "location": "",
-        "site": "", "position": "", "status": "", "tags": [],
-        "in_scope": False,
+        "site": "", "site_id": "", "rack_id": "", "location_ids": [], "region_ids": [],
+        "position": "", "status": "", "tags": [],
         "url": obj.get_absolute_url(),
         "ports": [],
     }
 
 
-def build_topology_graph(scope) -> dict:
+def _tree(model) -> tuple[list[dict], dict[int, list[str]]]:
+    """(facet options in tree order, id -> [own id and every ancestor's id]) for an MPTT model."""
+    rows = list(model.objects.order_by("tree_id", "lft").values(
+        "pk", "name", "parent_id", "level", *(["site__name"] if model is Location else [])
+    ))
+    parent = {r["pk"]: r["parent_id"] for r in rows}
+    paths = {}
+    for r in rows:
+        chain, cur = [], r["pk"]
+        while cur is not None:
+            chain.append(str(cur))
+            cur = parent.get(cur)
+        paths[r["pk"]] = chain
+    options = [{
+        "id": str(r["pk"]), "name": r["name"], "depth": r["level"],
+        "context": r.get("site__name", ""),
+    } for r in rows]
+    if model is Location:
+        # Group each site's location tree together; tree_ids interleave sites arbitrarily.
+        options.sort(key=lambda o: _natural_key(o["context"]))
+    return options, paths
+
+
+def build_topology_graph() -> dict:
     settings = CrossJournalSettings.load()
-    scope_devices = _devices_for_scope(scope)
+    devices = Device.objects.select_related(
+        "device_type", "device_type__manufacturer", "role", "site", "location", "rack",
+    ).prefetch_related("tags")
     if settings.excluded_statuses:
-        scope_devices = scope_devices.exclude(status__in=settings.excluded_statuses)
+        devices = devices.exclude(status__in=settings.excluded_statuses)
 
+    locations, location_paths = _tree(Location)
+    regions, region_paths = _tree(Region)
     nodes: dict[str, dict] = {}
-    for device in scope_devices:
-        nodes[f"d{device.pk}"] = _device_node(device, in_scope=True)
+    for device in devices:
+        nodes[f"d{device.pk}"] = _device_node(device, location_paths, region_paths)
 
-    scope_device_ids = [int(k[1:]) for k in nodes]
-    cable_ids = set(
-        CableTermination.objects.filter(_device_id__in=scope_device_ids)
-        .values_list("cable_id", flat=True)
-    )
-    cable_ids = _follow_passthroughs(cable_ids, scope_device_ids)
     terminations = list(
-        CableTermination.objects.filter(cable_id__in=cable_ids)
+        CableTermination.objects
         .select_related("cable", "termination_type")
         .prefetch_related("termination")
         .order_by("cable_id", "cable_end", "pk")
     )
 
-    external_ids = {
-        t._device_id for t in terminations
-        if t._device_id and f"d{t._device_id}" not in nodes
-    }
-    for device in Device.objects.filter(pk__in=external_ids).select_related(
-        "device_type", "device_type__manufacturer", "role", "site", "location", "rack",
-    ).prefetch_related("tags"):
-        nodes[f"d{device.pk}"] = _device_node(device, in_scope=False)
-
     ports: dict[str, dict] = {}
+    passthrough: dict[tuple[str, int], str] = {}  # (model, pk) -> port id, for PortMapping
     ends: dict[int, dict[str, list[str]]] = {}
     cables = {}
     for t in terminations:
@@ -173,6 +139,8 @@ def build_topology_graph(scope) -> dict:
         model = t.termination_type.model
         if t._device_id:
             node_id = f"d{t._device_id}"
+            if node_id not in nodes:
+                continue  # device left out by status (Settings → excluded statuses)
         else:
             node_id = f"o{model}{obj.pk}"
             if node_id not in nodes:
@@ -186,6 +154,8 @@ def build_topology_graph(scope) -> dict:
                 "description": (getattr(obj, "description", "") or "").strip(),
             }
             nodes[node_id]["ports"].append(ports[port_id])
+            if model in ("frontport", "rearport"):
+                passthrough[(model, obj.pk)] = port_id
         ends.setdefault(t.cable_id, {"A": [], "B": []})[t.cable_end].append(port_id)
         cables[t.cable_id] = t.cable
 
@@ -215,23 +185,29 @@ def build_topology_graph(scope) -> dict:
                 "target_port": b_port,
             })
 
+    # Front<->rear pairs inside a patch panel/box, between ports that are both cabled.
+    fronts = [pk for model, pk in passthrough if model == "frontport"]
+    rears = [pk for model, pk in passthrough if model == "rearport"]
+    for front_id, rear_id in PortMapping.objects.filter(
+        front_port_id__in=fronts, rear_port_id__in=rears
+    ).values_list("front_port_id", "rear_port_id"):
+        front, rear = ports[passthrough[("frontport", front_id)]], ports[passthrough[("rearport", rear_id)]]
+        front.setdefault("maps", []).append(rear["id"])
+        rear.setdefault("maps", []).append(front["id"])
+
     for node in nodes.values():
         node["ports"].sort(key=lambda p: (p["kind"], _natural_key(p["name"])))
 
-    kind = _scope_kind(scope)
     return {
-        "scope": {
-            "label": str(scope),
-            "kind": kind,
-            "site": scope.name if kind == "site" else (
-                scope.site.name if getattr(scope, "site", None) else ""
-            ),
-            "location": scope.name if kind == "location" else (
-                scope.location.name if getattr(scope, "location", None) else ""
-            ),
-            "company": settings.company_name,
-        },
-        "nodes": sorted(nodes.values(), key=lambda n: (not n["in_scope"], _natural_key(n["name"]))),
+        "company": settings.company_name,
+        "regions": regions,
+        "sites": [{"id": str(pk), "name": name, "depth": 0, "context": ""}
+                  for pk, name in Site.objects.order_by("name").values_list("pk", "name")],
+        "locations": locations,
+        "racks": [{"id": str(pk), "name": name, "depth": 0, "context": site}
+                  for pk, name, site in Rack.objects.order_by("site__name", "name")
+                  .values_list("pk", "name", "site__name")],
+        "nodes": sorted(nodes.values(), key=lambda n: (n["kind"] != "device", _natural_key(n["name"]))),
         "edges": edges,
     }
 

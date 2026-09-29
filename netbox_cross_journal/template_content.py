@@ -14,6 +14,8 @@ def _make_panel_extension(model_label):
             content_type = ContentType.objects.get_for_model(obj)
             return self.render("netbox_cross_journal/inc/panel.html", extra_context={
                 "object_type_id": content_type.pk,
+                # Topology filter key: ?rack=, ?location=, ?site=, ?region=
+                "scope_kind": content_type.model,
             })
 
     CrossJournalPanel.__name__ = f"CrossJournalPanel_{model_label.replace('.', '_')}"

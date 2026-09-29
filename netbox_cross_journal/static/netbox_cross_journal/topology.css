@@ -77,6 +77,13 @@ button, input, select { font: inherit; color: inherit; }
 .app.sidebar-hidden .sidebar { display: none; }
 .scope { padding: 18px 18px 14px; border-bottom: 1px solid var(--border); }
 .scope h1 { font-size: 18px; margin: 0; letter-spacing: -0.01em; }
+.back-link {
+  display: inline-flex; align-items: center; gap: 4px; max-width: 100%;
+  margin: -4px 0 10px -3px; padding: 2px 6px 2px 2px; border-radius: 6px;
+  color: var(--accent); text-decoration: none; font-size: 12px;
+}
+.back-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.back-link:hover { background: var(--accent-soft); }
 .scope-company { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; }
 .scope-label { font-weight: 600; margin-top: 2px; }
 .scope-meta { color: var(--muted); font-size: 12px; }
@@ -152,6 +159,11 @@ button, input, select { font: inherit; color: inherit; }
 .facet-option input { accent-color: var(--accent); margin: 0; }
 .facet-option .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .facet-option .count { color: var(--muted); font-size: 11px; }
+.facet-group {
+  font-size: 11px; font-weight: 600; color: var(--muted); padding: 6px 6px 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.facet-group[hidden] { display: none; }
 .facet-actions { display: flex; justify-content: flex-end; margin-top: 4px; }
 .switch-sm { font-size: 12px; color: var(--muted); margin-top: 6px; padding: 6px 6px 0; border-top: 1px solid var(--border); }
 .tag-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15); }
@@ -160,6 +172,27 @@ button, input, select { font: inherit; color: inherit; }
   display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px 1px 6px;
   border: 1px solid var(--border); border-radius: 999px; font-size: 12px;
 }
+
+.field { display: flex; flex-direction: column; gap: 4px; font-weight: 500; margin-top: 10px; }
+.field-select, .save-as input {
+  width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg);
+}
+.seg { display: flex; margin-top: 8px; }
+.seg button {
+  flex: 1; height: 30px; border: 1px solid var(--border); background: var(--panel); cursor: pointer; margin-left: -1px;
+}
+.seg button:first-child { border-radius: 7px 0 0 7px; margin-left: 0; }
+.seg button:last-child { border-radius: 0 7px 7px 0; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); position: relative; }
+#manual-opts[hidden], .save-as[hidden], .btn[hidden] { display: none; }
+#manual-opts .hint { margin: 8px 0 4px; color: var(--muted); font-size: 12px; }
+.layout-actions { display: flex; gap: 8px; margin-top: 10px; }
+.layout-actions .btn { flex: 1; }
+.btn:disabled { opacity: 0.5; cursor: default; filter: none; }
+.save-as { margin-top: 10px; }
+.status { font-size: 12px; color: var(--muted); margin-top: 6px; min-height: 1em; }
+.status.error { color: var(--edge-power); }
+.scope-label.dirty::after { content: " •"; color: var(--accent); }
 
 /* ---------- stage ---------- */
 .stage { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -205,7 +238,7 @@ button, input, select { font: inherit; color: inherit; }
   background-size: 22px 22px;
   cursor: grab; touch-action: none;
 }
-.canvas.panning { cursor: grabbing; }
+.canvas.panning, .canvas.moving, .canvas.moving .g-node { cursor: grabbing; }
 .graph { width: 100%; height: 100%; display: block; }
 
 .legend {
@@ -216,6 +249,7 @@ button, input, select { font: inherit; color: inherit; }
 .legend-item { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
 .legend-line { width: 22px; height: 0; border-top: 2.5px solid; }
 .legend-box { width: 14px; height: 10px; border-radius: 3px; border: 1.5px solid var(--node-border); background: var(--node-bg); }
+.legend-box.unplaced { border: 1.5px dashed var(--accent); }
 .legend-box.ext { border-style: dashed; border-color: var(--node-ext-border); background: var(--node-ext-bg); }
 
 .details {
@@ -299,6 +333,9 @@ button, input, select { font: inherit; color: inherit; }
 .graph .g-edge-group.hl .g-edge { stroke-width: 2.8; }
 .graph .g-node.selected .g-node-body { stroke: var(--accent); stroke-width: 2.5; }
 .graph .g-node:hover .g-node-body { stroke: var(--accent); }
+.graph .g-node.unplaced .g-node-body { stroke: var(--accent); stroke-width: 1.8; stroke-dasharray: 6 4; }
+.graph .g-node.dragging { opacity: 0.85; }
+.graph .g-node.dragging .g-node-body { stroke: var(--accent); stroke-width: 2; }
 
 /* ---------- print ---------- */
 .print-header { display: none; }

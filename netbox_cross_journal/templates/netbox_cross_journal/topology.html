@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% trans "Topology" %} — {{ graph.scope.label }}</title>
+  <title>{% trans "Topology" %}{% if layout_name %} — {{ layout_name }}{% endif %}</title>
   <script>
     // Follow NetBox's own light/dark choice (stored by its UI), falling back to the OS setting.
     (function () {
@@ -22,7 +22,7 @@
 <body>
   <header class="print-header" id="print-header-block">
     <div>
-      <div class="ph-title">{% if graph.scope.company %}{{ graph.scope.company }} — {% endif %}{% trans "Topology" %}: {{ graph.scope.label }}</div>
+      <div class="ph-title">{% if graph.company %}{{ graph.company }} — {% endif %}{% trans "Topology" %}{% if layout_name %}: {{ layout_name }}{% endif %}</div>
       <div class="ph-meta" id="print-meta"></div>
     </div>
     <div class="ph-legend" id="print-legend"></div>
@@ -31,12 +31,48 @@
   <div class="app">
     <aside class="sidebar" id="sidebar">
       <header class="scope">
-        {% if graph.scope.company %}<div class="scope-company">{{ graph.scope.company }}</div>{% endif %}
+        <a class="back-link" href="{{ back.0 }}" title="{% trans "Back to NetBox" %}">
+          <svg viewBox="0 0 24 24" width="14" height="14"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          <span>{{ back.1 }}</span>
+        </a>
+        {% if graph.company %}<div class="scope-company">{{ graph.company }}</div>{% endif %}
         <h1>{% trans "Topology" %}</h1>
-        <div class="scope-label">{% if graph.scope.kind == "region" %}{% trans "Region" %}: {% endif %}{{ graph.scope.label }}</div>
-        {% if graph.scope.site and graph.scope.kind != "site" %}<div class="scope-meta">{% trans "Site" %}: {{ graph.scope.site }}</div>{% endif %}
-        {% if graph.scope.location and graph.scope.kind == "rack" %}<div class="scope-meta">{% trans "Location" %}: {{ graph.scope.location }}</div>{% endif %}
+        <div class="scope-label" id="layout-title"></div>
       </header>
+
+      <section class="block">
+        <div class="block-title">
+          {% trans "Layout" %}
+          <a class="link-btn" href="{{ page.list_url }}" target="_blank">{% trans "Manage" %}</a>
+        </div>
+        <select id="layout-select" class="field-select"></select>
+        <div class="seg" role="group">
+          <button type="button" data-mode="auto">{% trans "Automatic" %}</button>
+          <button type="button" data-mode="manual">{% trans "Manual" %}</button>
+        </div>
+        <div id="manual-opts" hidden>
+          <label class="field">{% trans "Cable routing" %}
+            <select id="routing-select" class="field-select">
+              <option value="orthogonal">{% trans "Around the cards (cards stay put)" %}</option>
+              <option value="elk">{% trans "ELK interactive (snaps cards into columns)" %}</option>
+            </select>
+          </label>
+          <p class="hint">{% trans "Drag cards to arrange them. New devices appear on the right with a dashed outline." %}</p>
+          <button type="button" class="link-btn" id="reset-arrangement">{% trans "Reset arrangement" %}</button>
+        </div>
+        <div class="layout-actions">
+          <button type="button" class="btn btn-primary" id="layout-save" hidden>{% trans "Save" %}</button>
+          <button type="button" class="btn" id="layout-save-as" hidden>{% trans "Save as…" %}</button>
+        </div>
+        <form id="save-as-form" class="save-as" hidden>
+          <input type="text" id="save-as-name" maxlength="100" placeholder="{% trans "Layout name" %}" required>
+          <div class="layout-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+            <button type="button" class="btn" id="save-as-cancel">{% trans "Cancel" %}</button>
+          </div>
+        </form>
+        <div class="status" id="layout-status"></div>
+      </section>
 
       <section class="block">
         <div class="block-title">{% trans "Connections" %}</div>
@@ -46,7 +82,6 @@
       <section class="block">
         <div class="block-title">{% trans "Display" %}</div>
         <label class="switch"><input type="checkbox" id="opt-neighbors"><span></span>{% trans "Show connected neighbors" %}</label>
-        <label class="switch"><input type="checkbox" id="opt-external"><span></span>{% trans "Show devices outside scope" %}</label>
         <label class="switch"><input type="checkbox" id="opt-unconnected"><span></span>{% trans "Show devices without connections" %}</label>
         <label class="switch"><input type="checkbox" id="opt-labels"><span></span>{% trans "Cable labels" %}</label>
       </section>
@@ -115,7 +150,9 @@
 
   {{ graph|json_script:"topology-data" }}
   {{ i18n|json_script:"topology-i18n" }}
+  {{ page|json_script:"topology-page" }}
   <script src="{% static 'netbox_cross_journal/vendor/elk.bundled.js' %}?v={{ asset_version }}"></script>
+  <script src="{% static 'netbox_cross_journal/topology_router.js' %}?v={{ asset_version }}"></script>
   <script src="{% static 'netbox_cross_journal/topology.js' %}?v={{ asset_version }}"></script>
 </body>
 </html>
