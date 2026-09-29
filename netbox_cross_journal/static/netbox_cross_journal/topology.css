@@ -23,6 +23,9 @@
   --edge-power: #dc2626;
   --edge-console: #d97706;
   --label-bg: #ffffff;
+  --group-bg: rgba(37, 99, 235, 0.035);
+  --group-head: rgba(37, 99, 235, 0.08);
+  --group-border: #c7d2e6;
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.1);
   --shadow-lg: 0 10px 30px rgba(16, 24, 40, 0.14);
   color-scheme: light;
@@ -50,6 +53,9 @@
   --edge-power: #f87171;
   --edge-console: #fbbf24;
   --label-bg: #1b2029;
+  --group-bg: rgba(96, 165, 250, 0.05);
+  --group-head: rgba(96, 165, 250, 0.12);
+  --group-border: #2f3a4d;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5);
   color-scheme: dark;
@@ -307,6 +313,10 @@ button, input, select { font: inherit; color: inherit; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- diagram (SVG) — `g-` prefix: copied into exported SVGs ---------- */
+.g-group-box { fill: var(--group-bg); stroke: var(--group-border); stroke-width: 1.2; }
+.g-group-handle { fill: var(--group-head); }
+.g-group-title { fill: var(--node-title); font: 600 13px system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+.g-group-count { fill: var(--node-sub); font-weight: 400; font-size: 12px; }
 .g-node-body { fill: var(--node-bg); stroke: var(--node-border); stroke-width: 1.2; }
 .g-node.external .g-node-body { fill: var(--node-ext-bg); stroke: var(--node-ext-border); stroke-dasharray: 5 3; }
 .g-node-divider { stroke: var(--node-divider); stroke-width: 1; }
@@ -328,6 +338,7 @@ button, input, select { font: inherit; color: inherit; }
 /* interaction states (screen only) */
 .graph .g-node, .graph .g-edge-group { transition: opacity 0.15s; }
 .graph .g-node { cursor: pointer; }
+.graph .g-group-handle { cursor: move; }
 .graph .g-edge-group { cursor: pointer; }
 .graph.focus .g-node:not(.hl), .graph.focus .g-edge-group:not(.hl) { opacity: 0.12; }
 .graph .g-edge-group.hl .g-edge { stroke-width: 2.8; }

@@ -330,7 +330,7 @@ msgstr "Схема топології"
 #: templates/netbox_cross_journal/topology.html:37
 #: templates/netbox_cross_journal/topology.html:39
 msgid "Site"
-msgstr "Сайт"
+msgstr "Тех. майданчик"
 
 #: templates/netbox_cross_journal/report.html:34
 #: templates/netbox_cross_journal/topology.html:39
@@ -501,7 +501,7 @@ msgid "Region"
 msgstr "Регіон"
 
 msgid "Sites"
-msgstr "Сайти"
+msgstr "Тех. майданчики"
 
 msgid "Match all selected tags"
 msgstr "Лише з усіма вибраними тегами"
@@ -619,6 +619,15 @@ msgstr "позиції"
 
 msgid "Back to NetBox"
 msgstr "Повернутися в NetBox"
+
+msgid "Group into zones by"
+msgstr "Розбити на зони за"
+
+msgid "Zones"
+msgstr "Зони"
+
+msgid "No zones"
+msgstr "Без зон"
 
 #~ msgid "via"
 #~ msgstr "через"

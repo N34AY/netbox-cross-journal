@@ -129,6 +129,7 @@
     unconnected: false,
     labels: true,
     tagMatchAll: false,
+    groupBy: "", // key of GROUPINGS, "" = no groups
   };
   // The same object is the URL hash and a saved layout's `filters`.
   function stateSnapshot() {
@@ -137,6 +138,7 @@
       n: +state.neighbors, u: +state.unconnected, l: +state.labels, ta: +state.tagMatchAll,
     };
     FACETS.forEach((f) => { if (state.sel[f.key].size) s[f.key] = Array.from(state.sel[f.key]); });
+    if (state.groupBy) s.g = state.groupBy;
     return s;
   }
   function saveState() {
@@ -152,6 +154,7 @@
     if ("u" in s) state.unconnected = !!s.u;
     if ("l" in s) state.labels = !!s.l;
     if ("ta" in s) state.tagMatchAll = !!s.ta;
+    if ("g" in s) state.groupBy = GROUPINGS[s.g] ? s.g : "";
     FACETS.forEach((f) => {
       if (Array.isArray(s[f.key])) {
         const valid = new Set(f.options.map((o) => o.value));
@@ -225,6 +228,61 @@
     return { nodes, edges, usedPorts, focus };
   }
   const isNeighbor = (vis, n) => !vis.focus.has(n.id) || n.kind !== "device";
+
+  // ---------------------------------------------------------------- zones (group by)
+  // Devices sharing a value are laid out together inside a labelled box, cables between
+  // boxes run between them. region/location use the device's own (innermost) one — the
+  // first id of its ancestry list. Power feeds and circuits stay outside any box.
+  const nameOf = (list) => { const m = new Map(list.map((o) => [o.id, o])); return (id) => (m.get(id) || {}).name || id; };
+  const GROUPINGS = {
+    region: { label: T.region, key: (n) => n.region_ids[0] || "", name: nameOf(graph.regions) },
+    site: { label: T.site, key: (n) => n.site_id, name: nameOf(graph.sites) },
+    location: { label: T.location, key: (n) => n.location_ids[0] || "", name: nameOf(graph.locations) },
+    rack: { label: T.rack, key: (n) => n.rack_id, name: nameOf(graph.racks) },
+    role: { label: T.role, key: (n) => n.role, name: (v) => v },
+  };
+  const groupKeyOf = (n) => (state.groupBy && n.kind === "device" ? "grp:" + GROUPINGS[state.groupBy].key(n) : null);
+  function groupLabel(gid) {
+    const v = gid.slice(4);
+    return v === "" ? T.none : GROUPINGS[state.groupBy].name(v);
+  }
+  // Boxes around the member cards — for manual arrangements, where the cards decide.
+  const GROUP_PAD = { top: 44, side: 24, bottom: 24 };
+  function groupsAround(children) {
+    if (!state.groupBy) return [];
+    const boxes = new Map();
+    for (const c of children) {
+      const gid = groupKeyOf(nodeById.get(c.id));
+      if (!gid) continue;
+      if (!boxes.has(gid)) boxes.set(gid, { id: gid, members: [], x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity });
+      const b = boxes.get(gid);
+      b.members.push(c.id);
+      b.x1 = Math.min(b.x1, c.x); b.y1 = Math.min(b.y1, c.y);
+      b.x2 = Math.max(b.x2, c.x + c.width); b.y2 = Math.max(b.y2, c.y + c.height);
+    }
+    return Array.from(boxes.values(), (b) => ({
+      id: b.id, members: b.members, label: groupLabel(b.id),
+      x: b.x1 - GROUP_PAD.side, y: b.y1 - GROUP_PAD.top,
+      width: b.x2 - b.x1 + 2 * GROUP_PAD.side, height: b.y2 - b.y1 + GROUP_PAD.top + GROUP_PAD.bottom,
+    }));
+  }
+  // Drawing bounds: cards, boxes, cables and their labels, plus a margin.
+  function withBounds(result) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const grow = (x, y, w, h) => {
+      minX = Math.min(minX, x); minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + (w || 0)); maxY = Math.max(maxY, y + (h || 0));
+    };
+    (result.children || []).forEach((c) => grow(c.x, c.y, c.width, c.height));
+    (result.groups || []).forEach((g) => grow(g.x, g.y, g.width, g.height));
+    (result.edges || []).forEach((e) => {
+      (e.sections || []).forEach((sec) => [sec.startPoint].concat(sec.bendPoints || [], [sec.endPoint]).forEach((p) => grow(p.x, p.y)));
+      (e.labels || []).forEach((lb) => grow(lb.x, lb.y, lb.width, lb.height));
+    });
+    if (minX === Infinity) { minX = minY = maxX = maxY = 0; }
+    const PAD = 40;
+    return Object.assign(result, { x0: minX - PAD, y0: minY - PAD, width: maxX - minX + 2 * PAD, height: maxY - minY + 2 * PAD });
+  }
 
   // ---------------------------------------------------------------- arrangement (saved layout)
   const arr = {
@@ -334,14 +392,66 @@
       targets: [e.target_port],
       labels: state.labels && e.label ? [Object.assign({ text: e.label }, edgeLabelSize(e.label))] : [],
     }));
-    return { id: "root", layoutOptions: interactive ? ELK_INTERACTIVE : ELK_AUTO, children, edges };
+    if (!state.groupBy || interactive) {
+      return { id: "root", layoutOptions: interactive ? ELK_INTERACTIVE : ELK_AUTO, children, edges };
+    }
+    // Zones: one compound node per group, laid out together with its contents so cables
+    // between zones are routed across the hierarchy. ROOT coordinates keep every shape and
+    // edge in one coordinate space (otherwise children are relative to their box).
+    const boxes = new Map();
+    const top = [];
+    for (const child of children) {
+      const gid = groupKeyOf(nodeById.get(child.id));
+      if (!gid) { top.push(child); continue; }
+      if (!boxes.has(gid)) {
+        const labelW = textWidth(groupLabel(gid), FONT_TITLE) + 60;
+        boxes.set(gid, {
+          id: gid,
+          layoutOptions: Object.assign({}, ELK_AUTO, {
+            "elk.padding": `[top=${GROUP_PAD.top},left=${GROUP_PAD.side},bottom=${GROUP_PAD.bottom},right=${GROUP_PAD.side}]`,
+            "elk.nodeSize.constraints": "MINIMUM_SIZE",
+            "elk.nodeSize.minimum": `(${labelW}, 80)`,
+          }),
+          children: [],
+        });
+        top.push(boxes.get(gid));
+      }
+      boxes.get(gid).children.push(child);
+    }
+    return {
+      id: "root",
+      layoutOptions: Object.assign({}, ELK_AUTO, {
+        "elk.hierarchyHandling": "INCLUDE_CHILDREN",
+        "elk.json.shapeCoords": "ROOT",
+        "elk.json.edgeCoords": "ROOT",
+        "elk.spacing.nodeNode": "60",
+      }),
+      children: top,
+      edges,
+    };
   }
 
+  // Flattened result: `children` are the cards (absolute coordinates), `groups` the boxes.
   async function elkLayout(vis, interactive) {
     const result = await elk.layout(buildElkGraph(vis, interactive));
-    result.x0 = 0;
-    result.y0 = 0;
-    return result;
+    const cards = [], groups = [], edges = (result.edges || []).slice();
+    for (const c of result.children || []) {
+      if (!c.id.startsWith("grp:")) { cards.push(c); continue; }
+      groups.push({ id: c.id, label: groupLabel(c.id), members: c.children.map((m) => m.id), x: c.x, y: c.y, width: c.width, height: c.height });
+      cards.push(...c.children);
+      edges.push(...(c.edges || []));
+    }
+    if (state.groupBy && !interactive) {
+      // ROOT coordinates apply to ports and port labels too; render() wants a port relative
+      // to its card and a label relative to its port.
+      for (const c of cards) {
+        for (const p of c.ports || []) {
+          for (const lb of p.labels || []) { lb.x -= p.x; lb.y -= p.y; }
+          p.x -= c.x; p.y -= c.y;
+        }
+      }
+    }
+    return withBounds({ children: cards, groups: interactive ? groupsAround(cards) : groups, edges });
   }
 
   // ---------------------------------------------------------------- manual layout
@@ -410,10 +520,7 @@
       cheap
     );
 
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    const grow = (x, y) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); };
     const children = Array.from(geo.values(), (g) => {
-      grow(g.x, g.y); grow(g.x + g.w, g.y + g.h);
       return {
         id: g.n.id, x: g.x, y: g.y, width: g.w, height: g.h,
         ports: g.ports.map((pg) => {
@@ -431,7 +538,6 @@
     });
     const edges = vis.edges.map((e) => {
       const pts = routes.get(e.id);
-      pts.forEach((p) => grow(p.x, p.y));
       const labels = [];
       if (state.labels && e.label) {
         // centred on the longest straight run
@@ -445,12 +551,7 @@
       }
       return { id: e.id, sections: [{ startPoint: pts[0], bendPoints: pts.slice(1, -1), endPoint: pts[pts.length - 1] }], labels };
     });
-    if (!children.length) { minX = minY = 0; maxX = maxY = 0; }
-    const PAD = 40;
-    return {
-      x0: minX - PAD, y0: minY - PAD, width: maxX - minX + 2 * PAD, height: maxY - minY + 2 * PAD,
-      children, edges,
-    };
+    return withBounds({ children, edges, groups: groupsAround(children) });
   }
 
   // Visible cards without a stored position: if none of them has one, the whole view starts
@@ -513,6 +614,17 @@
     adjacency = new Map();
     visibleEdges = new Map(vis.edges.map((e) => [e.id, e]));
 
+    const groupLayer = el("g", { class: "g-groups" }, viewport);
+    for (const gr of result.groups || []) {
+      const g = el("g", { class: "g-group", transform: `translate(${gr.x},${gr.y})` }, groupLayer);
+      el("rect", { width: gr.width, height: gr.height, rx: 14, class: "g-group-box" }, g);
+      // The header strip is the handle for moving the whole zone (the box body pans, so a
+      // large zone doesn't swallow the canvas).
+      el("rect", { width: gr.width, height: 34, rx: 14, class: "g-group-handle", "data-group": gr.id }, g);
+      const title = el("text", { x: 16, y: 23, class: "g-group-title" }, g);
+      title.textContent = truncate(gr.label, FONT_TITLE, Math.max(40, gr.width - 70));
+      el("tspan", { class: "g-group-count", dx: 8 }, title).textContent = String(gr.members.length);
+    }
     const edgeLayer = el("g", { class: "g-edges" }, viewport);
     const nodeLayer = el("g", { class: "g-nodes" }, viewport);
     const labelLayer = el("g", { class: "g-edge-labels" }, viewport);
@@ -674,18 +786,26 @@
   svg.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
     const nodeEl = e.target.closest && e.target.closest("[data-node]");
-    drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false, node: nodeEl ? nodeEl.dataset.node : null };
+    const groupEl = !nodeEl && e.target.closest && e.target.closest("[data-group]");
+    drag = {
+      x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false,
+      node: nodeEl ? nodeEl.dataset.node : null, group: groupEl ? groupEl.dataset.group : null,
+    };
   });
+  // A card, or every card of a zone when its header is dragged.
   function startNodeDrag() {
     if (arr.mode === "auto") {
       layout.children.forEach((c) => arr.positions.set(c.id, { x: c.x, y: c.y }));
       arr.mode = "manual";
       updateLayoutUi();
     }
-    const c = layout.children.find((ch) => ch.id === drag.node);
-    drag.orig = { x: c.x, y: c.y };
-    drag.el = svg.querySelector(`[data-node="${CSS.escape(drag.node)}"]`);
-    drag.el.classList.add("dragging");
+    const ids = drag.node ? [drag.node] : layout.groups.find((g) => g.id === drag.group).members;
+    drag.items = ids.map((id) => {
+      const c = layout.children.find((ch) => ch.id === id);
+      const nodeEl = svg.querySelector(`[data-node="${CSS.escape(id)}"]`);
+      nodeEl.classList.add("dragging");
+      return { id, orig: { x: c.x, y: c.y }, el: nodeEl };
+    });
     canvas.classList.add("moving");
   }
   window.addEventListener("pointermove", (e) => {
@@ -694,25 +814,39 @@
     if (!drag.moved && Math.hypot(dx, dy) > 4) {
       drag.moved = true;
       hideTooltip();
-      if (drag.node) startNodeDrag();
+      if (drag.node || drag.group) startNodeDrag();
       else canvas.classList.add("panning");
     }
     if (!drag.moved) return;
-    if (!drag.node) {
+    if (!drag.items) {
       view.x = drag.vx + dx;
       view.y = drag.vy + dy;
       applyView();
       return;
     }
-    const pos = { x: snap(drag.orig.x + dx / view.k), y: snap(drag.orig.y + dy / view.k) };
-    arr.positions.set(drag.node, pos);
-    if (arr.routing === "elk") {
-      // ELK re-lays everything on drop; until then just carry the card.
-      drag.el.setAttribute("transform", `translate(${pos.x},${pos.y})`);
-    } else if (!dragFrame) {
+    // One card snaps to the grid; a zone moves by a snapped offset so its cards keep their
+    // arrangement relative to each other.
+    const one = drag.items.length === 1;
+    const ox = snap(dx / view.k), oy = snap(dy / view.k);
+    drag.items.forEach((it) => {
+      const pos = one
+        ? { x: snap(it.orig.x + dx / view.k), y: snap(it.orig.y + dy / view.k) }
+        : { x: it.orig.x + ox, y: it.orig.y + oy };
+      arr.positions.set(it.id, pos);
+      // ELK re-lays everything on drop; until then just carry the cards.
+      if (arr.routing === "elk") it.el.setAttribute("transform", `translate(${pos.x},${pos.y})`);
+    });
+    if (arr.routing !== "elk" && !dragFrame) {
       dragFrame = requestAnimationFrame(() => {
         dragFrame = 0;
-        if (drag && drag.node) render(manualLayout(lastVis, true), lastVis);
+        if (drag && drag.items) {
+          render(manualLayout(lastVis, true), lastVis);
+          // render() rebuilt the DOM; re-flag the cards being carried
+          drag.items.forEach((it) => {
+            it.el = svg.querySelector(`[data-node="${CSS.escape(it.id)}"]`);
+            if (it.el) it.el.classList.add("dragging");
+          });
+        }
       });
     }
   });
@@ -722,10 +856,10 @@
     drag = null;
     canvas.classList.remove("panning", "moving");
     if (!d.moved) { handleClick(e); return; }
-    if (d.node) {
+    if (d.items) {
       cancelAnimationFrame(dragFrame);
       dragFrame = 0;
-      arr.unplaced.delete(d.node);
+      d.items.forEach((it) => arr.unplaced.delete(it.id));
       markDirty();
       relayout({ keepView: true });
     }
@@ -948,6 +1082,14 @@
     $(id).addEventListener("change", () => { state[key] = $(id).checked; onFiltersChanged({ keepView: key === "labels" }); });
   });
 
+  const groupSelect = $("opt-group");
+  groupSelect.appendChild(h("option", { value: "", text: T.no_zones }));
+  Object.entries(GROUPINGS).forEach(([key, g]) => groupSelect.appendChild(h("option", { value: key, text: g.label })));
+  groupSelect.addEventListener("change", () => {
+    state.groupBy = groupSelect.value;
+    onFiltersChanged({ keepView: arr.mode === "manual" });
+  });
+
   const facetEls = {};
   FACETS.forEach((f) => {
     // nothing to choose between — unless a link (?region=..) preselected it
@@ -1020,6 +1162,7 @@
     KINDS.forEach((k) => kindButtons[k].setAttribute("aria-pressed", String(state.kinds.has(k))));
     Object.entries(OPTS).forEach(([key, id]) => { $(id).checked = state[key]; });
     if ($("opt-tag-all")) $("opt-tag-all").checked = state.tagMatchAll;
+    groupSelect.value = state.groupBy;
     Object.entries(facetEls).forEach(([key, { rows }]) => rows.forEach((r) => { r._cb.checked = state.sel[key].has(r._value); }));
     renderFacetBadges();
   }
@@ -1070,6 +1213,7 @@
       const names = f.options.filter((o) => state.sel[f.key].has(o.value)).map((o) => o.label);
       parts.push(`${f.label}: ${names.join(f.key === "tag" && state.tagMatchAll ? " + " : ", ")}`);
     });
+    if (state.groupBy) parts.push(`${T.zones}: ${GROUPINGS[state.groupBy].label}`);
     if (state.kinds.size < KINDS.length) parts.push(KINDS.filter((k) => state.kinds.has(k)).map((k) => T[k]).join(" + "));
     return parts.join(" · ");
   }
